@@ -7,7 +7,7 @@
   "workers_dev": true,
   "routes": [
     {
-      "pattern": "cannvas.mikecann.app",
+      "pattern": "cannvas.isllm.com",
       "custom_domain": true
     }
   ],
