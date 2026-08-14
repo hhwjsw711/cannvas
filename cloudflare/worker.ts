@@ -6,9 +6,13 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
     }
 
-    // The public domain is a curated app launcher. The full dashboard remains
-    // available only on the physical Cannvas display.
-    if (url.pathname === "/" || url.pathname === "/index.html") {
+    // The full dashboard is protected by Cloudflare Zero Trust Access.
+    if (url.pathname === "/") {
+      url.pathname = "/index.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+
+    if (url.pathname === "/apps" || url.pathname === "/apps/") {
       url.pathname = "/apps/index.html";
       return env.ASSETS.fetch(new Request(url, request));
     }
