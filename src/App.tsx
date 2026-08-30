@@ -10,6 +10,7 @@ import {
   ListTodo,
   PackageSearch,
   PencilLine,
+  CloudSun,
 } from "lucide-react";
 import { CalendarApp } from "./apps/CalendarApp";
 import { ChoresApp } from "./apps/ChoresApp";
@@ -19,6 +20,7 @@ import { KioskInventoryApp } from "./apps/KioskInventoryApp";
 import { SammyTabletTickerApp } from "./apps/SammyTabletTickerApp";
 import { TodosApp } from "./apps/TodosApp";
 import { WhiteboardApp } from "./apps/WhiteboardApp";
+import { WeatherApp } from "./apps/WeatherApp";
 import { useCannvasData } from "./data/DataProvider";
 import { dismissNativeKeyboard, installNativeKeyboard } from "./lib/nativeKeyboard";
 
@@ -27,6 +29,7 @@ type AppId =
   | "chores"
   | "todos"
   | "calendar"
+  | "weather"
   | "home-automation"
   | "sammy-tablets"
   | "inventory"
@@ -37,6 +40,7 @@ const primaryApps = [
   { id: "chores" as const, label: "Joshua's chores", icon: CheckSquare2 },
   { id: "todos" as const, label: "To-do's", icon: ListTodo },
   { id: "calendar" as const, label: "Calendar", icon: CalendarDays },
+  { id: "weather" as const, label: "Weather", icon: CloudSun },
   { id: "home-automation" as const, label: "Home controls", icon: HousePlug },
 ];
 
@@ -50,6 +54,7 @@ const DEFAULT_IDLE_TIMEOUT = 5 * 60 * 1000;
 export function App() {
   const { isReady } = useCannvasData();
   const [activeApp, setActiveApp] = useState<AppId>("whiteboard");
+  const [displaySession, setDisplaySession] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const moreWrap = useRef<HTMLDivElement>(null);
@@ -61,6 +66,9 @@ export function App() {
     // A focused field can be unmounted without firing focusout. Hide the native
     // keyboard explicitly so it never covers the idle display.
     dismissNativeKeyboard();
+    // This also fires when the display is already active. Give DisplayApp an
+    // explicit reset signal so an idle timeout always mutes the video again.
+    setDisplaySession((session) => session + 1);
     setActiveApp("display");
   }, []);
 
@@ -131,10 +139,11 @@ export function App() {
         {isReady && activeApp === "chores" && <ChoresApp />}
         {isReady && activeApp === "todos" && <TodosApp />}
         {isReady && activeApp === "calendar" && <CalendarApp />}
+        {isReady && activeApp === "weather" && <WeatherApp />}
         {isReady && activeApp === "home-automation" && <HomeAutomationApp />}
         {isReady && activeApp === "sammy-tablets" && <SammyTabletTickerApp />}
         {isReady && activeApp === "inventory" && <KioskInventoryApp />}
-        {isReady && activeApp === "display" && <DisplayApp onOpenCalendar={() => openApp("calendar")} />}
+        {isReady && activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} />}
       </div>
 
       {keyboardVisible && activeApp !== "display" && (

@@ -1,11 +1,12 @@
-import { CheckCircle2, Clock3 } from "lucide-react";
+import { CheckCircle2, Clock3, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import { addCalendarDays, calendarDateKey, calendarEventTime, eventsForDate } from "../lib/calendar";
 
-// The mirror streams Joshua's videos directly from the Josh Photos share.
-const VIDEO_ROOT = "http://192.168.1.168:6113/Josh%20Photos/";
-const VIDEO_CACHE_KEY = "cannvas-video-list-v2";
+// The mirror proxies Bruce's private media service so the browser only needs
+// access to the same loopback origin as the rest of Cannvas.
+const VIDEO_ROOT = "/videos/";
+const VIDEO_CACHE_KEY = "cannvas-video-list-v3";
 const VIDEO_PATTERN = /<a href="([^"]+)"/g;
 const YR_METEOGRAM = "https://www.yr.no/en/content/2-2075265/meteogram.svg";
 
@@ -18,7 +19,9 @@ async function crawlVideos(root = VIDEO_ROOT, depth = 0, visited = new Set<strin
   const urls = [...html.matchAll(VIDEO_PATTERN)]
     .map((match) => match[1])
     .filter((href) => href !== "../" && href !== "./../")
-    .map((href) => new URL(href, root).toString())
+    // Keep proxy URLs relative to Cannvas. `new URL(href, root)` turns them
+    // into absolute browser URLs, which then fail the VIDEO_ROOT safety check.
+    .map((href) => new URL(href, new URL(root, window.location.origin)).pathname)
     .filter((url) => url.startsWith(VIDEO_ROOT));
   const videos = urls.filter((url) => /\.(mp4|m4v|mov|webm)$/i.test(url));
   const folders = urls.filter((url) => url.endsWith("/") && url !== root);
@@ -26,9 +29,20 @@ async function crawlVideos(root = VIDEO_ROOT, depth = 0, visited = new Set<strin
   return [...videos, ...nested.flat()];
 }
 
-export function DisplayApp({ onOpenCalendar }: { onOpenCalendar: () => void }) {
+export function DisplayApp({
+  displaySession,
+  onActivity,
+  onOpenCalendar,
+  onOpenWeather,
+}: {
+  displaySession: number;
+  onActivity: () => void;
+  onOpenCalendar: () => void;
+  onOpenWeather: () => void;
+}) {
   const { calendarEvents, calendarStatus, newsHeadlines } = useCannvasData();
   const [now, setNow] = useState(new Date());
+  const [videoAudio, setVideoAudio] = useState(() => ({ session: displaySession, muted: true }));
   const [calendarCanExpand, setCalendarCanExpand] = useState(false);
   const calendarWidgetRef = useRef<HTMLElement>(null);
   const [weatherVersion, setWeatherVersion] = useState(Date.now());
@@ -36,6 +50,11 @@ export function DisplayApp({ onOpenCalendar }: { onOpenCalendar: () => void }) {
     try { return JSON.parse(localStorage.getItem(VIDEO_CACHE_KEY) ?? "[]") as string[]; } catch { return []; }
   });
   const [videoIndex, setVideoIndex] = useState(() => Math.floor(Math.random() * Math.max(1, videos.length)));
+
+  // Derive this during render so a new session is muted before the video can
+  // commit or produce even a brief audio blip. The stored choice only belongs
+  // to the display session in which the user made it.
+  const videoMuted = videoAudio.session === displaySession ? videoAudio.muted : true;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
@@ -87,7 +106,7 @@ export function DisplayApp({ onOpenCalendar }: { onOpenCalendar: () => void }) {
     <section className="display-app">
       <div className="display-media">
         {currentVideo ? (
-          <video key={currentVideo} src={currentVideo} autoPlay muted playsInline onEnded={() => setVideoIndex((value) => value + 1)} onError={() => setVideoIndex((value) => value + 1)} />
+          <video key={currentVideo} src={currentVideo} autoPlay muted={videoMuted} playsInline onEnded={() => setVideoIndex((value) => value + 1)} onError={() => setVideoIndex((value) => value + 1)} />
         ) : (
           <div className="display-gradient"><span>C</span></div>
         )}
@@ -147,11 +166,17 @@ export function DisplayApp({ onOpenCalendar }: { onOpenCalendar: () => void }) {
       </aside>
 
       <div className="display-widgets">
-        <aside className="weather-panel yr-weather-panel">
-          <div className="yr-weather-frame">
+        <button
+          type="button"
+          className="weather-panel yr-weather-panel"
+          aria-label="Open detailed Busselton weather"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={onOpenWeather}
+        >
+          <span className="yr-weather-frame">
             <img src={`${YR_METEOGRAM}?bust=${weatherVersion}`} alt="Busselton weather forecast from Yr" />
-          </div>
-        </aside>
+          </span>
+        </button>
         <aside className="weather-panel news-panel">
           <div className="news-header"><span>BBC News</span></div>
           <div className="news-headlines">
@@ -160,9 +185,24 @@ export function DisplayApp({ onOpenCalendar }: { onOpenCalendar: () => void }) {
             ))}
           </div>
         </aside>
+        {currentVideo && (
+          <button
+            type="button"
+            className={`display-audio-toggle${videoMuted ? "" : " is-playing"}`}
+            aria-label={videoMuted ? "Turn video sound on" : "Mute video"}
+            aria-pressed={!videoMuted}
+            onPointerDown={(event) => {
+              // Keep this tap from waking the previous app, but still restart
+              // the idle clock so sound is muted again after inactivity.
+              event.stopPropagation();
+              onActivity();
+            }}
+            onClick={() => setVideoAudio({ session: displaySession, muted: !videoMuted })}
+          >
+            {videoMuted ? <VolumeX aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+          </button>
+        )}
       </div>
-
-      <div className="wake-hint">Tap anywhere to return</div>
     </section>
   );
 }
