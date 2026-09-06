@@ -193,6 +193,30 @@ separate `TOUCH_DOWN` event for each finger. If every finger behaves like one
 mouse pointer, check the Labwc configuration in
 [`deploy/labwc-rc.xml`](deploy/labwc-rc.xml).
 
+The kiosk uses `deploy/cannvas-kiosk.service` and
+`deploy/cannvas-keyboard.service` as persistent **user** units in
+`~/.config/systemd/user/`. Labwc's autostart imports its current Wayland socket
+and restarts both units on login; systemd restarts them if they exit. Managing
+the keyboard and its child together prevents an old controller from retaining
+the previous desktop socket or blocking the new controller's port.
+
+Install `deploy/cannvas-display-recover` in `/usr/local/sbin/` and its matching
+service and timer in `/etc/systemd/system/`, then enable the timer. It checks
+for an active Pi Wayland desktop every 30 seconds and restarts LightDM after
+two failed checks. This recovers the login screen left behind when a desktop
+exits. Stop `cannvas-display-recover.timer` before intentional console or login
+screen maintenance, and start it again afterwards. Use graphical autologin
+only; remove the separate `getty@tty1.service.d/autologin.conf` override to
+avoid a second automatic seat session during boot.
+
+The September 2026 login-screen incident was a desktop failure, not rejected
+credentials: LightDM logged `pi` in successfully, Labwc logged DRM permission
+errors and exited with status 1, then LightDM left the greeter active. The exact
+trigger for the display permission loss was not established. Recovery should
+not depend on that trigger: killing Chromium must restart its user service,
+and terminating Pi's Labwc must restore the desktop through the timer. A full
+reboot should start the desktop, browser, keyboard and timer without a login.
+
 ## How the data is handled
 
 Whiteboards, chores, pet schedules, and device settings work locally on the

@@ -1,0 +1,10 @@
+[Unit]
+Description=Recover the Cannvas desktop after a failed session
+After=lightdm.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cannvas-display-recover
+RuntimeDirectory=cannvas-display-recover
+RuntimeDirectoryPreserve=yes
+TimeoutStartSec=45

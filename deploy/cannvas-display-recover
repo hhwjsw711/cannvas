@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+# LightDM autologin runs at startup, but a crashed desktop falls back to the
+# greeter indefinitely. Require two failed checks so normal startup gets time.
+# /run resets on reboot and avoids depending on the Pi's unsynchronised clock.
+marker=/run/cannvas-display-recover/missing-session
+session=$(/usr/bin/loginctl show-seat seat0 -p ActiveSession --value)
+if [ -n "$session" ]; then
+  user=$(/usr/bin/loginctl show-session "$session" -p Name --value)
+  type=$(/usr/bin/loginctl show-session "$session" -p Type --value)
+  if [ "$user" = pi ] && [ "$type" = wayland ] && /usr/bin/pgrep -u pi -x labwc >/dev/null; then
+    rm -f "$marker"
+    exit 0
+  fi
+fi
+
+if [ ! -f "$marker" ]; then
+  touch "$marker"
+  exit 0
+fi
+
+rm -f "$marker"
+echo 'Cannvas desktop is absent or inactive across two checks; restarting LightDM for autologin'
+/usr/bin/systemctl restart lightdm.service
