@@ -1,0 +1,11 @@
+[Unit]
+Description=Check the Cannvas desktop every 30 seconds
+
+[Timer]
+OnBootSec=90
+OnUnitInactiveSec=30
+AccuracySec=1
+Unit=cannvas-display-recover.service
+
+[Install]
+WantedBy=timers.target

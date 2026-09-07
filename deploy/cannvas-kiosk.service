@@ -1,0 +1,9 @@
+[Unit]
+Description=Cannvas Chromium kiosk
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/local/bin/cannvas-kiosk
+Restart=always
+RestartSec=5
+TimeoutStopSec=10

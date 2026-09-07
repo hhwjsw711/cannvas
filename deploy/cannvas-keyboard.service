@@ -1,0 +1,9 @@
+[Unit]
+Description=Cannvas touch keyboard controller
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/local/bin/cannvas-keyboard
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
