@@ -35,9 +35,9 @@ export const seed = mutation({
     const existing = await ctx.db.query("chores").first();
     if (existing) return;
     const defaults = [
-      ["Make my bed", 50],
-      ["Feed the pets", 50],
-      ["Tidy my room", 100],
+      ["叠被子", 50],
+      ["喂宠物", 50],
+      ["整理房间", 100],
     ] as const;
     for (const [position, [name, valueCents]] of defaults.entries()) {
       await ctx.db.insert("chores", {
