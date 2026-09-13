@@ -32,9 +32,9 @@ const CALENDAR_RELOAD_KEY = "cannvas-calendar-reload-at";
 const TABLET_SCHEDULE_VERSION = 1;
 const COLORS = ["#ff8066", "#ffbf47", "#5ec6a5", "#6ba7ff", "#a77bea", "#ff7eb3"];
 const PREVIEW_HEADLINES: NewsHeadline[] = [
-  { title: "世界新闻将自动更新", url: "https://www.bbc.com/news/world" },
-  { title: "新闻源可以稍后更改", url: "https://www.bbc.com/news/world" },
-  { title: "全天持续刷新最新报道", url: "https://www.bbc.com/news/world" },
+  { title: "世界新闻将自动更新", url: "https://www.bbc.com/zhongwen/simp" },
+  { title: "新闻源可以稍后更改", url: "https://www.bbc.com/zhongwen/simp" },
+  { title: "全天持续刷新最新报道", url: "https://www.bbc.com/zhongwen/simp" },
 ];
 const INITIAL_TABLET_HISTORY: TabletCompletion[] = [
   { id: "history-nuheart-2025-08-20", tabletId: "nuheart", takenDate: "2025-08-20" },

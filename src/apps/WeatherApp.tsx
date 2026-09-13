@@ -243,7 +243,7 @@ function RadarScrubber({
       <div className="weather-radar-range">
         <span>{radarTime(frames[0])}</span>
         <strong>{radarTime(frames[frameIndex])}</strong>
-        <span>{frames.at(-1)?.forecast ? radarTime(frames.at(-1)) : "Now"}</span>
+        <span>{frames.at(-1)?.forecast ? radarTime(frames.at(-1)) : "现在"}</span>
       </div>
     </div>
   );

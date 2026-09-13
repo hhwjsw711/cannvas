@@ -104,8 +104,8 @@ const FILTERS: Array<{ id: ControlFilter; label: string }> = [
 ];
 
 const FAMILY = [
-  { id: "mike", name: " Mike", avatar: "/avatars/dad.png", matches: ["mike", "cann"] },
-  { id: "kelsie", name: "Kelsie", avatar: "/avatars/mum.png", matches: ["kelsie", "kels"] },
+  { id: "mike", name: "爸爸", avatar: "/avatars/dad.png", matches: ["mike", "cann"] },
+  { id: "kelsie", name: "妈妈", avatar: "/avatars/mum.png", matches: ["kelsie", "kels"] },
 ] as const;
 
 function familyMemberFor(person: HomeAssistantEntity) {
@@ -208,7 +208,10 @@ function stateLabel(entity: HomeAssistantEntity) {
   if (["unavailable", "unknown"].includes(state)) return "不可用";
   if (entity.domain === "person") return state === "home" ? "在家" : state === "not_home" ? "外出" : entity.state;
   if (entity.domain === "lock") return state === "locked" ? "已锁定" : "未锁定";
-  if (entity.domain === "cover") return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
+  if (entity.domain === "cover") {
+    const coverLabels: Record<string, string> = { open: "打开", opening: "正在打开", closed: "关闭", closing: "正在关闭" };
+    return coverLabels[state] ?? entity.state;
+  }
   if (["light", "switch", "fan", "input_boolean"].includes(entity.domain)) return isOn(entity) ? "开" : "关";
   if (entity.domain === "climate") {
     const temperature = entity.attributes.current_temperature ?? entity.attributes.temperature;
@@ -226,7 +229,7 @@ function stateLabel(entity: HomeAssistantEntity) {
     const maximumFractionDigits = ["battery", "humidity"].includes(entity.attributes.device_class ?? "")
       ? 0
       : entity.attributes.device_class === "energy" ? 2 : 1;
-    const formatted = new Intl.NumberFormat("en-AU", { maximumFractionDigits }).format(numericState);
+    const formatted = new Intl.NumberFormat("zh-CN", { maximumFractionDigits }).format(numericState);
     return `${formatted}${entity.attributes.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ""}`;
   }
   return `${entity.state}${entity.attributes.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : ""}`;
@@ -390,7 +393,7 @@ export function HomeAutomationApp() {
         </div>
         <div className={`home-connection-card ${connected ? "connected" : ""}`}>
           {connected ? <Wifi /> : <WifiOff />}
-          <span><strong>{connected ? status.locationName ?? "家" : configured ? "离线" : "未连接"}</strong>{connected ? `${peopleHome} 人在家` : "Home Assistant"}</span>
+          <span><strong>{connected ? status.locationName ?? "家" : configured ? "离线" : "未连接"}</strong>{connected ? `${peopleHome} 人在家` : "等待连接 Home Assistant"}</span>
         </div>
       </header>
 
@@ -422,7 +425,7 @@ export function HomeAutomationApp() {
             </section>
 
             <section className="home-location-section">
-              <div className="home-section-title"><div><span>实时位置</span><h2>我们在哪</h2></div></div>
+              <div className="home-section-title"><div><span>实时位置</span><h2>家人位置</h2></div></div>
               <HomeLocationMap people={people} />
             </section>
 
@@ -443,14 +446,14 @@ export function HomeAutomationApp() {
                       {networkClients.map((client) => (
                         <article key={`${client.name}-${client.ip ?? client.network}`}>
                           <span className="home-network-client-icon"><Wifi /></span>
-                          <div className="home-network-client-name"><strong>{client.name}</strong><small>{client.ip ?? "无 IP"} · {client.isWired ? "有线" : client.network}</small></div>
+                          <div className="home-network-client-name"><strong>{client.name}</strong><small>{client.ip ?? "未分配 IP"} · {client.isWired ? "有线" : client.network}</small></div>
                           <div className="home-network-rate download"><Download /><strong>{formatRate(client.downloadBps)}</strong></div>
                           <div className="home-network-rate upload"><Upload /><strong>{formatRate(client.uploadBps)}</strong></div>
                         </article>
                       ))}
                     </div>
                   </>
-                ) : <p className="home-section-empty">UniFi 已连接到 Home Assistant，但控制器当前无响应。</p>}
+                ) : <p className="home-section-empty">UniFi 控制器无响应。</p>}
               </section>
             )}
 

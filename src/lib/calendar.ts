@@ -51,7 +51,7 @@ export function eventsForDate(events: CalendarEvent[], key: string) {
 }
 
 export function calendarEventTime(event: CalendarEvent) {
-  if (event.allDay) return "All day";
+  if (event.allDay) return "全天";
   return new Date(event.start).toLocaleTimeString("zh-CN", {
     timeZone: CALENDAR_TIME_ZONE,
     hour: "numeric",

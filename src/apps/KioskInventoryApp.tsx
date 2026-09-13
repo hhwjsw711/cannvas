@@ -37,15 +37,15 @@ export function KioskInventoryApp() {
         const query = cursor ? `?cursor=${encodeURIComponent(cursor)}` : "";
         const response = await fetch(`/api/inventory${query}`);
         if (!response.headers.get("Content-Type")?.includes("application/json")) {
-          throw new Error("Inventory is available on the Cannvas touchscreen");
+          throw new Error("物品清单仅在触控屏上可用");
         }
         const body = await response.json() as InventoryResponse;
-        if (!response.ok) throw new Error(body.error || "Inventory is temporarily unavailable");
-        if (!body.configured) throw new Error("Inventory is available on the Cannvas touchscreen");
+        if (!response.ok) throw new Error(body.error || "物品清单暂时不可用");
+        if (!body.configured) throw new Error("物品清单仅在触控屏上可用");
         loadedItems.push(...(body.page ?? []));
         isDone = body.isDone ?? true;
         if (!isDone && (!body.continueCursor || body.continueCursor === cursor)) {
-          throw new Error("Inventory stopped loading before it was complete");
+          throw new Error("物品清单加载中断");
         }
         cursor = body.continueCursor ?? null;
       }
@@ -54,7 +54,7 @@ export function KioskInventoryApp() {
 
     void loadInventory()
       .catch((error: unknown) => {
-        if (active) setMessage(error instanceof Error ? error.message : "Inventory is temporarily unavailable");
+        if (active) setMessage(error instanceof Error ? error.message : "物品清单暂时不可用");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -63,14 +63,14 @@ export function KioskInventoryApp() {
   }, []);
 
   const visibleItems = useMemo(() => {
-    const query = search.trim().toLocaleLowerCase("en-AU");
+    const query = search.trim().toLocaleLowerCase("zh-CN");
     if (!query) return items;
     return items.filter((item) => [
       item.title,
       item.category,
       item.condition,
       item.currentLocationName,
-    ].some((value) => value.toLocaleLowerCase("en-AU").includes(query)));
+    ].some((value) => value.toLocaleLowerCase("zh-CN").includes(query)));
   }, [items, search]);
 
   return (

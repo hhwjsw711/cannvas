@@ -239,13 +239,13 @@ export function WhiteboardApp() {
       <div className="canvas-wrap">
         <canvas
           ref={canvasRef}
-          aria-label={`Whiteboard for ${longDate(selectedDate)}`}
+          aria-label={`${longDate(selectedDate)} 的白板`}
           onPointerDown={startDrawing}
           onPointerMove={continueDrawing}
           onPointerUp={(event) => void finishDrawing(event.pointerId)}
           onPointerCancel={(event) => void finishDrawing(event.pointerId)}
         />
-        {strokes.length === 0 && <div className="canvas-hint">今天画点什么吧</div>}
+        {strokes.length === 0 && <div className="canvas-hint">点击开始绘画</div>}
         <div className="whiteboard-floating-controls">
           <div className="whiteboard-date-controls app-control-palette">
         <button className="icon-button" aria-label="前一天" onClick={() => setSelectedDate(dateKey(addDays(fromDateKey(selectedDate), -1)))}>
@@ -297,7 +297,7 @@ export function WhiteboardApp() {
               className={value === color ? "color-swatch selected" : "color-swatch"}
               style={{ "--swatch": value } as React.CSSProperties}
               onClick={() => setColor(value)}
-              aria-label={`Use ${value}`}
+              aria-label={`使用颜色 ${value}`}
             />
           ))}
         </div>

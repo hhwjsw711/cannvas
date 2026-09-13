@@ -92,7 +92,7 @@ export function ChoresApp() {
           <div className="interest-payday-icon"><CircleDollarSign /></div>
           <div>
             <strong>利息发薪日！</strong>
-            <span>{sunday.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })} 星期日是本月最后一个周日。</span>
+            <span>{sunday.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })} 是本月最后一个周日。</span>
           </div>
           <div className="interest-payday-rate">
             <strong>10%</strong>
@@ -104,7 +104,7 @@ export function ChoresApp() {
       <div className="week-toolbar">
         <button className="icon-button" aria-label="上一周" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft /></button>
         <button className="week-label" onClick={() => setWeekStart(startOfWeek(new Date()))}>
-          <strong>{isThisWeek ? "本周" : `${weekStart.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })}那周`}</strong>
+          <strong>{isThisWeek ? "本周" : `${weekStart.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })}起`}</strong>
           {!isThisWeek && <span>点击回到本周</span>}
         </button>
         <button className="icon-button" aria-label="下一周" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight /></button>
@@ -125,9 +125,9 @@ export function ChoresApp() {
           <div className="chore-grid chore-row" key={chore.id}>
             <div className="chore-name" style={{ "--chore-color": chore.color } as React.CSSProperties}>
               <span className="chore-dot" />
-              <button className="chore-name-button" onClick={() => openEdit(chore.id)} aria-label={`Edit ${chore.name}`}>
+                <button className="chore-name-button" onClick={() => openEdit(chore.id)} aria-label={`编辑${chore.name}`}>
                 <strong>{chore.name}</strong>
-                <small><span className={`category-badge ${chore.category}`}>{chore.category}</span>{chore.category === "bonus" ? `${money(chore.valueCents)} 每次` : "每周责任"}</small>
+                <small><span className={`category-badge ${chore.category}`}>{chore.category === "bonus" ? "奖励" : "日常"}</span>{chore.category === "bonus" ? `${money(chore.valueCents)} 每次` : "日常责任"}</small>
               </button>
             </div>
             {days.map((day) => {
@@ -196,7 +196,7 @@ export function ChoresApp() {
             <div className="dialog-symbol info"><CircleHelp /></div>
             <h2 id="pocket-money-title">零花钱规则</h2>
             <div className="category-explanations">
-              <div className="standard"><strong>日常</strong><p>每周零花钱 routine 中需要完成的家庭责任。每次勾选不单独付费。</p></div>
+              <div className="standard"><strong>日常</strong><p>每周日常需要完成的家庭责任。每次勾选不单独付费。</p></div>
               <div className="bonus"><strong>奖励</strong><p>可选的额外任务。每次完成勾选即可获得对应金额。</p></div>
             </div>
             <ul>
