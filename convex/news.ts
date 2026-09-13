@@ -1,6 +1,6 @@
 import { action } from "./_generated/server";
 
-const WORLD_NEWS_FEED = "https://feeds.bbci.co.uk/news/world/rss.xml";
+const WORLD_NEWS_FEED = "https://rss.dw.com/xml/rss-chi-all";
 
 function decodeXml(value: string) {
   return value
