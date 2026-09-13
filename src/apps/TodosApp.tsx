@@ -107,7 +107,7 @@ export function TodosApp() {
                     </div>
                   </article>
                 ))}
-                {personTodos.length === 0 && <div className="todo-empty"><Check /><span>全部完成</span></div>}}
+                {personTodos.length === 0 && <div className="todo-empty"><Check /><span>全部完成</span></div>}
               </div>
             </section>
           );

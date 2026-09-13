@@ -404,7 +404,7 @@ export function HomeAutomationApp() {
           </div>
         )}
 
-        {!status && !error && <div className="home-loading"><RefreshCw /> 正在加载…</div>}}
+        {!status && !error && <div className="home-loading"><RefreshCw /> 正在加载…</div>}
 
         {connected && (
           <div className="home-dashboard-scroll">
