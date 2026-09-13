@@ -36,17 +36,17 @@ type AppId =
   | "display";
 
 const primaryApps = [
-  { id: "whiteboard" as const, label: "Whiteboard", icon: PencilLine },
-  { id: "chores" as const, label: "Joshua's chores", icon: CheckSquare2 },
-  { id: "todos" as const, label: "To-do's", icon: ListTodo },
-  { id: "calendar" as const, label: "Calendar", icon: CalendarDays },
-  { id: "weather" as const, label: "Weather", icon: CloudSun },
-  { id: "home-automation" as const, label: "Home controls", icon: HousePlug },
+  { id: "whiteboard" as const, label: "白板", icon: PencilLine },
+  { id: "chores" as const, label: "家务", icon: CheckSquare2 },
+  { id: "todos" as const, label: "待办", icon: ListTodo },
+  { id: "calendar" as const, label: "日历", icon: CalendarDays },
+  { id: "weather" as const, label: "天气", icon: CloudSun },
+  { id: "home-automation" as const, label: "智能家居", icon: HousePlug },
 ];
 
 const moreApps = [
-  { id: "sammy-tablets" as const, label: "Sammy", description: "Tablet schedule", icon: Dog },
-  { id: "inventory" as const, label: "Inventory", description: "Find household items", icon: PackageSearch },
+  { id: "sammy-tablets" as const, label: "宠物喂药", description: "驱虫提醒", icon: Dog },
+  { id: "inventory" as const, label: "物品清单", description: "查找家中物品", icon: PackageSearch },
 ];
 
 const DEFAULT_IDLE_TIMEOUT = 5 * 60 * 1000;
@@ -134,7 +134,7 @@ export function App() {
       onPointerDown={wake}
     >
       <div className="app-stage" aria-live="polite">
-        {!isReady && <div className="loading-card">Opening Cannvas…</div>}
+        {!isReady && <div className="loading-card">正在打开 Cannvas…</div>}
         {isReady && activeApp === "whiteboard" && <WhiteboardApp />}
         {isReady && activeApp === "chores" && <ChoresApp />}
         {isReady && activeApp === "todos" && <TodosApp />}
@@ -152,12 +152,12 @@ export function App() {
           onClick={dismissNativeKeyboard}
         >
           <Keyboard />
-          Hide keyboard
+          收起键盘
         </button>
       )}
 
       {activeApp !== "display" && (
-        <nav className="app-dock" aria-label="Cannvas apps">
+        <nav className="app-dock" aria-label="Cannvas 应用">
           {primaryApps.map(({ id, label, icon: Icon }) => (
             <button
               className={activeApp === id ? "dock-item active" : "dock-item"}
@@ -171,8 +171,8 @@ export function App() {
           ))}
           <div className="dock-more-wrap" ref={moreWrap}>
             {moreOpen && (
-              <div className="more-apps-popover" role="dialog" aria-label="More apps">
-                <div><strong>More apps</strong><span>Things you use less often</span></div>
+              <div className="more-apps-popover" role="dialog" aria-label="更多应用">
+                <div><strong>更多应用</strong><span>不常用的功能</span></div>
                 {moreApps.map(({ id, label, description, icon: Icon }) => (
                   <button key={id} onClick={() => openApp(id)}>
                     <span className="more-app-icon"><Icon /></span>
@@ -189,7 +189,7 @@ export function App() {
               aria-haspopup="dialog"
             >
               <span className="dock-icon"><Ellipsis strokeWidth={2.4} /></span>
-              <span>More</span>
+              <span>更多</span>
             </button>
           </div>
           <span className="dock-divider" aria-hidden="true" />
@@ -198,7 +198,7 @@ export function App() {
             onClick={() => openApp("display")}
           >
             <span className="dock-icon"><LayoutDashboard strokeWidth={2.4} /></span>
-            <span>Home</span>
+            <span>主页</span>
           </button>
         </nav>
       )}

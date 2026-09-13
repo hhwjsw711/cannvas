@@ -8,13 +8,13 @@ type ChoreCategoryPickerProps = {
 export function ChoreCategoryPicker({ value, onChange }: ChoreCategoryPickerProps) {
   return (
     <fieldset className="category-picker">
-      <legend>Chore category</legend>
+      <legend>家务类别</legend>
       <div>
         <button type="button" className={value === "standard" ? "standard selected" : "standard"} aria-pressed={value === "standard"} onClick={() => onChange("standard")}>
-          <strong>Standard</strong><span>Regular responsibility</span>
+          <strong>日常</strong><span>常规责任</span>
         </button>
         <button type="button" className={value === "bonus" ? "bonus selected" : "bonus"} aria-pressed={value === "bonus"} onClick={() => onChange("bonus")}>
-          <strong>Bonus</strong><span>Extra paid job</span>
+          <strong>奖励</strong><span>额外付费任务</span>
         </button>
       </div>
     </fieldset>

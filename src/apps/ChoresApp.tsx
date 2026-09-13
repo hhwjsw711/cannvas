@@ -74,16 +74,16 @@ export function ChoresApp() {
     <section className="chores-app">
       <header className="chores-header">
         <div>
-          <p className="eyebrow">Joshua's week</p>
-          <h1>Chore Quest <Sparkles className="sparkle" /></h1>
-          <p className="header-note">Small jobs, big wins.</p>
+          <p className="eyebrow">每周任务</p>
+          <h1>家务挑战 <Sparkles className="sparkle" /></h1>
+          <p className="header-note">小任务，大成就。</p>
         </div>
         <div className="reward-card">
-          <span>Bonus earned this week</span>
+          <span>本周已获奖励</span>
           <strong>{money(earned)}</strong>
           <div className="reward-progress"><span style={{ width: `${possible ? Math.min(100, (earned / possible) * 100) : 0}%` }} /></div>
-          <small>{money(possible)} bonus available</small>
-          <small className="standard-summary">Standard checks {standardDone}/{standardPossible}</small>
+          <small>{money(possible)} 可获奖励</small>
+          <small className="standard-summary">日常完成 {standardDone}/{standardPossible}</small>
         </div>
       </header>
 
@@ -91,28 +91,28 @@ export function ChoresApp() {
         <div className="interest-payday-banner" role="status">
           <div className="interest-payday-icon"><CircleDollarSign /></div>
           <div>
-            <strong>Interest payday!</strong>
-            <span>Sunday {sunday.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })} is the last Sunday of the month.</span>
+            <strong>利息发薪日！</strong>
+            <span>{sunday.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })} 星期日是本月最后一个周日。</span>
           </div>
           <div className="interest-payday-rate">
             <strong>10%</strong>
-            <span>Dad Bank bonus into Grow</span>
+            <span>爸爸银行奖励存入成长罐</span>
           </div>
         </div>
       )}
 
       <div className="week-toolbar">
-        <button className="icon-button" aria-label="Previous week" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft /></button>
+        <button className="icon-button" aria-label="上一周" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft /></button>
         <button className="week-label" onClick={() => setWeekStart(startOfWeek(new Date()))}>
-          <strong>{isThisWeek ? "This week" : `Week of ${weekStart.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })}`}</strong>
-          {!isThisWeek && <span>Tap to return to this week</span>}
+          <strong>{isThisWeek ? "本周" : `${weekStart.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })}那周`}</strong>
+          {!isThisWeek && <span>点击回到本周</span>}
         </button>
-        <button className="icon-button" aria-label="Next week" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight /></button>
+        <button className="icon-button" aria-label="下一周" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight /></button>
       </div>
 
       <div className="chore-board">
         <div className="chore-grid grid-header">
-          <div className="chore-title-cell">My chores</div>
+          <div className="chore-title-cell">我的家务</div>
           {days.map((day) => (
             <div className={dateKey(day) === dateKey(new Date()) ? "day-heading today" : "day-heading"} key={dateKey(day)}>
               <span>{day.toLocaleDateString("zh-CN", { weekday: "short" })}</span>
@@ -127,7 +127,7 @@ export function ChoresApp() {
               <span className="chore-dot" />
               <button className="chore-name-button" onClick={() => openEdit(chore.id)} aria-label={`Edit ${chore.name}`}>
                 <strong>{chore.name}</strong>
-                <small><span className={`category-badge ${chore.category}`}>{chore.category}</span>{chore.category === "bonus" ? `${money(chore.valueCents)} each time` : "Weekly responsibility"}</small>
+                <small><span className={`category-badge ${chore.category}`}>{chore.category}</span>{chore.category === "bonus" ? `${money(chore.valueCents)} 每次` : "每周责任"}</small>
               </button>
             </div>
             {days.map((day) => {
@@ -139,7 +139,7 @@ export function ChoresApp() {
                   className={checked ? "chore-check checked" : "chore-check"}
                   style={{ "--chore-color": chore.color } as React.CSSProperties}
                   onClick={() => void toggleCompletion(chore.id, dayKey)}
-                  aria-label={`${checked ? "Uncheck" : "Check"} ${chore.name} on ${day.toLocaleDateString("zh-CN", { weekday: "long" })}`}
+                  aria-label={`${checked ? "取消勾选" : "勾选"} ${chore.name} ${day.toLocaleDateString("zh-CN", { weekday: "long" })}`}
                   aria-pressed={checked}
                 >
                   <span>{checked && <Check strokeWidth={4} />}</span>
@@ -150,11 +150,11 @@ export function ChoresApp() {
         ))}
 
         {chores.length === 0 && (
-          <div className="empty-chores"><Sparkles /><h2>Ready for a new quest?</h2><p>Add Joshua's first chore below.</p></div>
+          <div className="empty-chores"><Sparkles /><h2>准备开始新的挑战？</h2><p>在下方添加第一个家务。</p></div>
         )}
         <footer className="chores-actions app-control-palette">
-          <button className="button primary" onClick={openAdd}><Plus /> Add a chore</button>
-          <button className="button secondary pocket-money-info-button" onClick={() => setShowInfo(true)}><CircleHelp /> How pocket money works</button>
+          <button className="button primary" onClick={openAdd}><Plus /> 添加家务</button>
+          <button className="button secondary pocket-money-info-button" onClick={() => setShowInfo(true)}><CircleHelp /> 零花钱规则</button>
         </footer>
       </div>
 
@@ -162,13 +162,13 @@ export function ChoresApp() {
         <div className="dialog-backdrop" role="presentation" onPointerDown={() => setShowAdd(false)}>
           <form className="dialog-card add-chore-card chore-editor-card" onSubmit={(event) => void submitChore(event)} onPointerDown={(event) => event.stopPropagation()}>
             <div className="dialog-symbol add"><Plus /></div>
-            <h2>Add a new chore</h2>
+            <h2>添加新家务</h2>
             <ChoreCategoryPicker value={category} onChange={setCategory} />
             <div className="chore-form-fields">
-              <label><span>What needs doing?</span><input type="text" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" autoCapitalize="sentences" enterKeyHint="done" placeholder="Tap here to enter a chore" autoFocus /></label>
-              {category === "bonus" && <label><span>Bonus money each time</span><div className="money-input"><b>$</b><input type="text" inputMode="decimal" value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" enterKeyHint="done" /></div></label>}
+              <label><span>做什么？</span><input type="text" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" autoCapitalize="sentences" enterKeyHint="done" placeholder="点击输入家务名称" autoFocus /></label>
+              {category === "bonus" && <label><span>每次奖励金额</span><div className="money-input"><b>￥</b><input type="text" inputMode="decimal" value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" enterKeyHint="done" /></div></label>}
             </div>
-            <div className="dialog-actions"><button type="button" className="button secondary" onClick={() => setShowAdd(false)}>Cancel</button><button className="button primary" type="submit" disabled={!name.trim()}>Add chore</button></div>
+            <div className="dialog-actions"><button type="button" className="button secondary" onClick={() => setShowAdd(false)}>取消</button><button className="button primary" type="submit" disabled={!name.trim()}>添加</button></div>
           </form>
         </div>
       )}
@@ -177,14 +177,14 @@ export function ChoresApp() {
         <div className="dialog-backdrop" role="presentation" onPointerDown={() => setChoreToEdit(null)}>
           <form className="dialog-card chore-editor-card" onSubmit={(event) => void submitRename(event)} onPointerDown={(event) => event.stopPropagation()}>
             <div className="dialog-symbol edit"><Pencil /></div>
-            <h2>Edit chore</h2>
+            <h2>编辑家务</h2>
             <ChoreCategoryPicker value={category} onChange={setCategory} />
-            <label><span>Chore name</span><input type="text" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" autoCapitalize="sentences" enterKeyHint="done" autoFocus /></label>
-            {category === "bonus" && <label><span>Bonus money each time</span><div className="money-input"><b>$</b><input type="text" inputMode="decimal" value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" enterKeyHint="done" /></div></label>}
+            <label><span>家务名称</span><input type="text" value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" autoCapitalize="sentences" enterKeyHint="done" autoFocus /></label>
+            {category === "bonus" && <label><span>每次奖励金额</span><div className="money-input"><b>￥</b><input type="text" inputMode="decimal" value={value} onChange={(event) => setValue(event.target.value)} autoComplete="off" enterKeyHint="done" /></div></label>}
             <div className="dialog-actions">
-              <button type="button" className="button quiet-danger" onClick={() => setChoreToRemove(choreToEdit)}><Trash2 /> Remove chore</button>
-              <button type="button" className="button secondary" onClick={() => setChoreToEdit(null)}>Cancel</button>
-              <button className="button primary" type="submit" disabled={!name.trim()}>Save chore</button>
+              <button type="button" className="button quiet-danger" onClick={() => setChoreToRemove(choreToEdit)}><Trash2 /> 删除</button>
+              <button type="button" className="button secondary" onClick={() => setChoreToEdit(null)}>取消</button>
+              <button className="button primary" type="submit" disabled={!name.trim()}>保存</button>
             </div>
           </form>
         </div>
@@ -194,24 +194,24 @@ export function ChoresApp() {
         <div className="dialog-backdrop" role="presentation" onPointerDown={() => setShowInfo(false)}>
           <section className="dialog-card pocket-money-card" role="dialog" aria-modal="true" aria-labelledby="pocket-money-title" onPointerDown={(event) => event.stopPropagation()}>
             <div className="dialog-symbol info"><CircleHelp /></div>
-            <h2 id="pocket-money-title">How pocket money works</h2>
+            <h2 id="pocket-money-title">零花钱规则</h2>
             <div className="category-explanations">
-              <div className="standard"><strong>Standard</strong><p>Regular family responsibilities that need doing for the weekly pocket-money routine. They do not pay per check.</p></div>
-              <div className="bonus"><strong>Bonus</strong><p>Optional extra jobs. Every completed check earns the amount shown on that chore.</p></div>
+              <div className="standard"><strong>日常</strong><p>每周零花钱 routine 中需要完成的家庭责任。每次勾选不单独付费。</p></div>
+              <div className="bonus"><strong>奖励</strong><p>可选的额外任务。每次完成勾选即可获得对应金额。</p></div>
             </div>
             <ul>
-              <li>Payday is Sunday afternoon.</li>
-              <li>The weekly $3 is split into $1 Spend, $1 Grow and $1 Give.</li>
-              <li>Joshua chooses which jar receives his Bonus money.</li>
-              <li>Grow earns a 10% monthly Dad Bank bonus.</li>
+              <li>每周日下午发零花钱。</li>
+              <li>每周 ￥3 分为 ￥1 消费、￥1 成长、￥1 慈善。</li>
+              <li>孩子可以自行选择奖励钱存入哪个罐子。</li>
+              <li>成长罐每月获得 10% 爸爸银行利息。</li>
             </ul>
-            <button className="button primary" onClick={() => setShowInfo(false)}>Got it</button>
+            <button className="button primary" onClick={() => setShowInfo(false)}>知道了</button>
           </section>
         </div>
       )}
 
-      <ConfirmDialog open={choreToRemove !== null} title="Remove this chore?" confirmLabel="Remove chore" onCancel={() => setChoreToRemove(null)} onConfirm={() => { if (choreToRemove) void removeChore(choreToRemove); setChoreToRemove(null); setChoreToEdit(null); }}>
-        This removes the chore from Joshua's board. Existing weekly totals may change.
+      <ConfirmDialog open={choreToRemove !== null} title="确定删除这个家务？" confirmLabel="删除" onCancel={() => setChoreToRemove(null)} onConfirm={() => { if (choreToRemove) void removeChore(choreToRemove); setChoreToRemove(null); setChoreToEdit(null); }}>
+        这将从任务面板上移除该家务。已有的本周统计数据可能会变化。
       </ConfirmDialog>
     </section>
   );

@@ -32,9 +32,9 @@ const CALENDAR_RELOAD_KEY = "cannvas-calendar-reload-at";
 const TABLET_SCHEDULE_VERSION = 1;
 const COLORS = ["#ff8066", "#ffbf47", "#5ec6a5", "#6ba7ff", "#a77bea", "#ff7eb3"];
 const PREVIEW_HEADLINES: NewsHeadline[] = [
-  { title: "World headlines will update automatically", url: "https://www.bbc.com/news/world" },
-  { title: "The news source can be changed later", url: "https://www.bbc.com/news/world" },
-  { title: "Fresh stories appear throughout the day", url: "https://www.bbc.com/news/world" },
+  { title: "世界新闻将自动更新", url: "https://www.bbc.com/news/world" },
+  { title: "新闻源可以稍后更改", url: "https://www.bbc.com/news/world" },
+  { title: "全天持续刷新最新报道", url: "https://www.bbc.com/news/world" },
 ];
 const INITIAL_TABLET_HISTORY: TabletCompletion[] = [
   { id: "history-nuheart-2025-08-20", tabletId: "nuheart", takenDate: "2025-08-20" },
@@ -59,10 +59,10 @@ function previewCalendarEvents(): CalendarEvent[] {
     return value.toISOString();
   };
   return [
-    { id: "preview-school", title: "School assembly", start: at(0, 9), end: at(0, 10), allDay: false },
-    { id: "preview-soccer", title: "Joshie Soccer", start: at(1, 15, 15), end: at(1, 16), allDay: false },
-    { id: "preview-dinner", title: "Family dinner", start: at(3, 18), end: at(3, 19, 30), allDay: false },
-    { id: "preview-doctor", title: "Doctor appointment", start: at(6, 11, 15), end: at(6, 11, 45), allDay: false },
+    { id: "preview-school", title: "学校集会", start: at(0, 9), end: at(0, 10), allDay: false },
+    { id: "preview-soccer", title: "足球训练", start: at(1, 15, 15), end: at(1, 16), allDay: false },
+    { id: "preview-dinner", title: "家庭晚餐", start: at(3, 18), end: at(3, 19, 30), allDay: false },
+    { id: "preview-doctor", title: "看医生", start: at(6, 11, 15), end: at(6, 11, 45), allDay: false },
   ];
 }
 
@@ -123,16 +123,16 @@ function createInitialLocalState(): LocalState {
   return {
     boards: {},
     chores: [
-      { id: "make-bed", name: "Make my bed", valueCents: 50, category: "standard", color: COLORS[0], position: 0 },
-      { id: "feed-pets", name: "Feed the pets", valueCents: 50, category: "standard", color: COLORS[2], position: 1 },
-      { id: "tidy-room", name: "Tidy my room", valueCents: 100, category: "standard", color: COLORS[3], position: 2 },
+      { id: "make-bed", name: "叠被子", valueCents: 50, category: "standard", color: COLORS[0], position: 0 },
+      { id: "feed-pets", name: "喂宠物", valueCents: 50, category: "standard", color: COLORS[2], position: 1 },
+      { id: "tidy-room", name: "整理房间", valueCents: 100, category: "standard", color: COLORS[3], position: 2 },
     ],
     completions: [],
     todos: [],
     tabletSchedules: [
-      { id: "nuheart", name: "Nuheart", purpose: "Heartworm", cadenceMonths: 1, color: "#ed6a5a", dueDate: "2026-08-20" },
-      { id: "milbemax", name: "Milbemax", purpose: "Intestinal worms", cadenceMonths: 3, color: "#5f8fda", dueDate: "2026-09-20" },
-      { id: "bravecto", name: "Bravecto", purpose: "Fleas and ticks", cadenceMonths: 3, color: "#8c6bc7", dueDate: "2026-09-25" },
+      { id: "nuheart", name: "心丝虫药", purpose: "心丝虫预防", cadenceMonths: 1, color: "#ed6a5a", dueDate: "2026-08-20" },
+      { id: "milbemax", name: "体内驱虫药", purpose: "肠道寄生虫", cadenceMonths: 3, color: "#5f8fda", dueDate: "2026-09-20" },
+      { id: "bravecto", name: "体外驱虫药", purpose: "跳蚤和蜱虫", cadenceMonths: 3, color: "#8c6bc7", dueDate: "2026-09-25" },
     ],
     tabletCompletions: INITIAL_TABLET_HISTORY,
   };

@@ -98,13 +98,13 @@ const USEFUL_SENSOR_CLASSES = new Set([
 ]);
 
 const FILTERS: Array<{ id: ControlFilter; label: string }> = [
-  { id: "all", label: "All controls" },
-  { id: "lights", label: "Lights" },
-  { id: "switches", label: "Switches" },
+  { id: "all", label: "全部" },
+  { id: "lights", label: "灯光" },
+  { id: "switches", label: "开关" },
 ];
 
 const FAMILY = [
-  { id: "mike", name: "Mike", avatar: "/avatars/dad.png", matches: ["mike", "cann"] },
+  { id: "mike", name: " Mike", avatar: "/avatars/dad.png", matches: ["mike", "cann"] },
   { id: "kelsie", name: "Kelsie", avatar: "/avatars/mum.png", matches: ["kelsie", "kels"] },
 ] as const;
 
@@ -187,9 +187,9 @@ function HomeLocationMap({ people }: { people: HomeAssistantEntity[] }) {
   }, [locationKey]);
 
   if (locations.length === 0) {
-    return <div className="home-location-empty"><House /> Location will appear when a person tracker reports GPS coordinates.</div>;
+    return <div className="home-location-empty"><House /> 当家人追踪器报告 GPS 坐标时，位置将显示在此。</div>;
   }
-  return <div id="home-location-map" className="home-location-map" aria-label="Map showing family locations" />;
+  return <div id="home-location-map" className="home-location-map" aria-label="家人位置地图" />;
 }
 
 function isOn(entity: HomeAssistantEntity) {
@@ -205,11 +205,11 @@ function controlAction(entity: HomeAssistantEntity): HomeAssistantAction {
 
 function stateLabel(entity: HomeAssistantEntity) {
   const state = entity.state.toLowerCase();
-  if (["unavailable", "unknown"].includes(state)) return "Unavailable";
-  if (entity.domain === "person") return state === "home" ? "Home" : state === "not_home" ? "Away" : entity.state;
-  if (entity.domain === "lock") return state === "locked" ? "Locked" : "Unlocked";
+  if (["unavailable", "unknown"].includes(state)) return "不可用";
+  if (entity.domain === "person") return state === "home" ? "在家" : state === "not_home" ? "外出" : entity.state;
+  if (entity.domain === "lock") return state === "locked" ? "已锁定" : "未锁定";
   if (entity.domain === "cover") return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
-  if (["light", "switch", "fan", "input_boolean"].includes(entity.domain)) return isOn(entity) ? "On" : "Off";
+  if (["light", "switch", "fan", "input_boolean"].includes(entity.domain)) return isOn(entity) ? "开" : "关";
   if (entity.domain === "climate") {
     const temperature = entity.attributes.current_temperature ?? entity.attributes.temperature;
     return temperature === undefined ? entity.state : `${temperature}° · ${entity.state}`;
@@ -217,9 +217,9 @@ function stateLabel(entity: HomeAssistantEntity) {
   if (entity.domain === "binary_sensor") {
     const active = state === "on";
     const deviceClass = entity.attributes.device_class;
-    if (["door", "garage_door", "window", "opening"].includes(deviceClass ?? "")) return active ? "Open" : "Closed";
-    if (["motion", "occupancy", "presence"].includes(deviceClass ?? "")) return active ? "Detected" : "Clear";
-    return active ? "On" : "Off";
+    if (["door", "garage_door", "window", "opening"].includes(deviceClass ?? "")) return active ? "打开" : "关闭";
+    if (["motion", "occupancy", "presence"].includes(deviceClass ?? "")) return active ? "已检测" : "无";
+    return active ? "开" : "关";
   }
   const numericState = Number(entity.state);
   if (Number.isFinite(numericState)) {
@@ -385,12 +385,12 @@ export function HomeAutomationApp() {
       <header className="home-automation-header">
         <div>
           <p className="eyebrow">Home Assistant</p>
-          <h1>Home controls</h1>
-          <p className="header-note">See what is happening and control the house.</p>
+          <h1>智能家居</h1>
+          <p className="header-note">查看家中状态并控制设备。</p>
         </div>
         <div className={`home-connection-card ${connected ? "connected" : ""}`}>
           {connected ? <Wifi /> : <WifiOff />}
-          <span><strong>{connected ? status.locationName ?? "Home" : configured ? "Offline" : "Not connected"}</strong>{connected ? `${peopleHome} tracked ${peopleHome === 1 ? "person" : "people"} home` : "Home Assistant"}</span>
+          <span><strong>{connected ? status.locationName ?? "家" : configured ? "离线" : "未连接"}</strong>{connected ? `${peopleHome} 人在家` : "Home Assistant"}</span>
         </div>
       </header>
 
@@ -398,23 +398,23 @@ export function HomeAutomationApp() {
         {!configured && status && (
           <div className="home-connect-empty">
             <span><House /></span>
-            <h2>Connect your home</h2>
-            <p>Cannvas found Home Assistant on your network. Add a long-lived access token once, then the mirror can show and control your devices.</p>
-            <button className="button primary" onClick={() => setShowSettings(true)}><Settings /> Connect Home Assistant</button>
+            <h2>连接你的家</h2>
+            <p>在网络上发现了 Home Assistant。添加一个长期访问令牌，即可显示和控制设备。</p>
+            <button className="button primary" onClick={() => setShowSettings(true)}><Settings /> 连接 Home Assistant</button>
           </div>
         )}
 
-        {!status && !error && <div className="home-loading"><RefreshCw /> Loading your home…</div>}
+        {!status && !error && <div className="home-loading"><RefreshCw /> 正在加载…</div>}}
 
         {connected && (
           <div className="home-dashboard-scroll">
             <section className="home-presence-section">
-              <div className="home-section-title"><div><span>At home now</span><h2>Our family</h2></div><strong>{peopleHome} home</strong></div>
+              <div className="home-section-title"><div><span>在家</span><h2>家人</h2></div><strong>{peopleHome} 人在家</strong></div>
               <div className="home-presence-grid">
                 {family.map(({ id, name, avatar, person }) => (
                   <article className={person?.state.toLowerCase() === "home" ? "home-person-card is-home" : `home-person-card${person ? "" : " needs-setup"}`} key={id}>
                     <img className="home-person-avatar" src={avatar} alt={`${name}'s face`} />
-                    <div><strong>{name}</strong><small>{person ? stateLabel(person) : "Wi-Fi setup needed"}</small></div>
+                    <div><strong>{name}</strong><small>{person ? stateLabel(person) : "需要设置 Wi-Fi"}</small></div>
                     {person?.state.toLowerCase() === "home" ? <CheckCircle2 /> : person ? <House /> : <WifiOff />}
                   </article>
                 ))}
@@ -422,43 +422,43 @@ export function HomeAutomationApp() {
             </section>
 
             <section className="home-location-section">
-              <div className="home-section-title"><div><span>Live location</span><h2>Where we are</h2></div></div>
+              <div className="home-section-title"><div><span>实时位置</span><h2>我们在哪</h2></div></div>
               <HomeLocationMap people={people} />
             </section>
 
             {status.network?.configured && (
               <section className="home-network-section">
                 <div className="home-section-title">
-                  <div><span>UniFi network</span><h2>Connected now</h2></div>
-                  <strong>{status.network.connected ? `${status.network.online ?? 0} online` : "Offline"}</strong>
+                  <div><span>UniFi 网络</span><h2>当前连接</h2></div>
+                  <strong>{status.network.connected ? `${status.network.online ?? 0} 在线` : "离线"}</strong>
                 </div>
                 {status.network.connected ? (
                   <>
                     <div className="home-network-summary">
-                      <article><span><Network /></span><div><strong>{status.network.online ?? 0}</strong><small>Devices online</small></div></article>
-                      <article><span className="download"><Download /></span><div><strong>{formatRate(status.network.downloadBps)}</strong><small>Internet download</small></div></article>
-                      <article><span className="upload"><Upload /></span><div><strong>{formatRate(status.network.uploadBps)}</strong><small>Internet upload</small></div></article>
+                      <article><span><Network /></span><div><strong>{status.network.online ?? 0}</strong><small>在线设备</small></div></article>
+                      <article><span className="download"><Download /></span><div><strong>{formatRate(status.network.downloadBps)}</strong><small>下行带宽</small></div></article>
+                      <article><span className="upload"><Upload /></span><div><strong>{formatRate(status.network.uploadBps)}</strong><small>上行带宽</small></div></article>
                     </div>
                     <div className="home-network-clients">
                       {networkClients.map((client) => (
                         <article key={`${client.name}-${client.ip ?? client.network}`}>
                           <span className="home-network-client-icon"><Wifi /></span>
-                          <div className="home-network-client-name"><strong>{client.name}</strong><small>{client.ip ?? "No IP"} · {client.isWired ? "Wired" : client.network}</small></div>
+                          <div className="home-network-client-name"><strong>{client.name}</strong><small>{client.ip ?? "无 IP"} · {client.isWired ? "有线" : client.network}</small></div>
                           <div className="home-network-rate download"><Download /><strong>{formatRate(client.downloadBps)}</strong></div>
                           <div className="home-network-rate upload"><Upload /><strong>{formatRate(client.uploadBps)}</strong></div>
                         </article>
                       ))}
                     </div>
                   </>
-                ) : <p className="home-section-empty">UniFi is connected to Home Assistant, but the controller is not responding right now.</p>}
+                ) : <p className="home-section-empty">UniFi 已连接到 Home Assistant，但控制器当前无响应。</p>}
               </section>
             )}
 
             <section className="home-control-section">
-              <div className="home-section-title"><div><span>Tap to control</span><h2>Devices</h2></div><strong>{controls.filter(isOn).length} active</strong></div>
-              <div className="home-filter-row" role="group" aria-label="Filter home controls">
+              <div className="home-section-title"><div><span>点击控制</span><h2>设备</h2></div><strong>{controls.filter(isOn).length} 个活跃</strong></div>
+              <div className="home-filter-row" role="group" aria-label="筛选设备">
                 {FILTERS.map((option) => <button className={filter === option.id ? "active" : ""} key={option.id} onClick={() => setFilter(option.id)}>{option.label}</button>)}
-                <button className="home-unavailable-filter" onClick={() => setShowUnavailable((current) => !current)} aria-pressed={showUnavailable}><span className="home-unavailable-checkbox">{showUnavailable && <Check />}</span><span>Show unavailable</span></button>
+                <button className="home-unavailable-filter" onClick={() => setShowUnavailable((current) => !current)} aria-pressed={showUnavailable}><span className="home-unavailable-checkbox">{showUnavailable && <Check />}</span><span>显示不可用</span></button>
               </div>
               <div className="home-device-grid">
                 {controls.map((entity) => (
@@ -474,13 +474,13 @@ export function HomeAutomationApp() {
                     <span className="home-device-toggle"><i /></span>
                   </button>
                 ))}
-                {controls.length === 0 && <p className="home-section-empty">No matching controls found.</p>}
+                {controls.length === 0 && <p className="home-section-empty">没有匹配的设备。</p>}
               </div>
             </section>
 
             {sensors.length > 0 && (
               <section className="home-sensor-section">
-                <div className="home-section-title"><div><span>Live status</span><h2>At a glance</h2></div></div>
+                <div className="home-section-title"><div><span>实时状态</span><h2>一览</h2></div></div>
                 <div className="home-sensor-grid">
                   {sensors.map((entity) => <article key={entity.entityId}><span><EntityIcon entity={entity} /></span><div><strong>{stateLabel(entity)}</strong><small>{entity.name}</small></div></article>)}
                 </div>
@@ -489,7 +489,7 @@ export function HomeAutomationApp() {
           </div>
         )}
 
-        {error && <div className="home-error" role="alert"><WifiOff /><span><strong>Home Assistant needs attention</strong>{error}</span></div>}
+        {error && <div className="home-error" role="alert"><WifiOff /><span><strong>Home Assistant 需要处理</strong>{error}</span></div>}
 
       </div>
 
@@ -497,12 +497,12 @@ export function HomeAutomationApp() {
         <div className="dialog-backdrop home-settings-backdrop" role="presentation" onPointerDown={() => setShowSettings(false)}>
           <form className="dialog-card home-settings-card" onSubmit={(event) => void saveSettings(event)} onPointerDown={(event) => event.stopPropagation()}>
             <div className="dialog-symbol info"><House /></div>
-            <h2>Connect Home Assistant</h2>
-            <p>The token is stored only on this mirror. In Home Assistant, open your profile and create a Long-Lived Access Token.</p>
-            <label><span>Home Assistant address</span><input type="url" value={url} onChange={(event) => setUrl(event.target.value)} autoComplete="off" inputMode="url" /></label>
-            <label><span>Long-lived access token</span><input type="password" value={token} onChange={(event) => setToken(event.target.value)} autoComplete="off" placeholder={configured ? "Enter a new token to reconnect" : "Paste token here"} /></label>
+            <h2>连接 Home Assistant</h2>
+            <p>令牌仅存储在本机。在 Home Assistant 中，打开个人资料并创建长期访问令牌。</p>
+            <label><span>Home Assistant 地址</span><input type="url" value={url} onChange={(event) => setUrl(event.target.value)} autoComplete="off" inputMode="url" /></label>
+            <label><span>长期访问令牌</span><input type="password" value={token} onChange={(event) => setToken(event.target.value)} autoComplete="off" placeholder={configured ? "输入新令牌重新连接" : "粘贴令牌"} /></label>
             {error && <div className="home-settings-error">{error}</div>}
-            <div className="dialog-actions"><button type="button" className="button secondary" onClick={() => setShowSettings(false)}>Cancel</button><button className="button primary" type="submit" disabled={!url.trim() || !token.trim() || saving}>{saving ? "Connecting…" : "Connect"}</button></div>
+            <div className="dialog-actions"><button type="button" className="button secondary" onClick={() => setShowSettings(false)}>取消</button><button className="button primary" type="submit" disabled={!url.trim() || !token.trim() || saving}>{saving ? "连接中…" : "连接"}</button></div>
           </form>
         </div>
       )}

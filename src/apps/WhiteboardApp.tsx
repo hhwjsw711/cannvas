@@ -231,7 +231,7 @@ export function WhiteboardApp() {
     <section className="whiteboard-app">
       <header className="whiteboard-header">
         <div>
-          <p className="eyebrow">Daily whiteboard</p>
+          <p className="eyebrow">每日白板</p>
           <h1>{longDate(selectedDate)}</h1>
         </div>
       </header>
@@ -245,13 +245,13 @@ export function WhiteboardApp() {
           onPointerUp={(event) => void finishDrawing(event.pointerId)}
           onPointerCancel={(event) => void finishDrawing(event.pointerId)}
         />
-        {strokes.length === 0 && <div className="canvas-hint">Draw something for today</div>}
+        {strokes.length === 0 && <div className="canvas-hint">今天画点什么吧</div>}
         <div className="whiteboard-floating-controls">
           <div className="whiteboard-date-controls app-control-palette">
-        <button className="icon-button" aria-label="Previous day" onClick={() => setSelectedDate(dateKey(addDays(fromDateKey(selectedDate), -1)))}>
+        <button className="icon-button" aria-label="前一天" onClick={() => setSelectedDate(dateKey(addDays(fromDateKey(selectedDate), -1)))}>
           <ChevronLeft />
         </button>
-        <div className="date-strip" aria-label="Nearby whiteboards">
+        <div className="date-strip" aria-label="附近白板">
           {nearbyDates.map((day) => (
             <button key={day} className={day === selectedDate ? "date-chip selected" : "date-chip"} onClick={() => setSelectedDate(day)}>
               <span>{fromDateKey(day).toLocaleDateString("zh-CN", { weekday: "short" })}</span>
@@ -260,37 +260,37 @@ export function WhiteboardApp() {
             </button>
           ))}
         </div>
-        <button className="icon-button" aria-label="Next day" onClick={() => setSelectedDate(dateKey(addDays(fromDateKey(selectedDate), 1)))}>
+        <button className="icon-button" aria-label="后一天" onClick={() => setSelectedDate(dateKey(addDays(fromDateKey(selectedDate), 1)))}>
           <ChevronRight />
         </button>
         <label className="date-picker">
-          <span>Choose date</span>
+          <span>选择日期</span>
           <strong>{fromDateKey(selectedDate).toLocaleDateString("zh-CN")}</strong>
-          <input aria-label="Choose date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
+          <input aria-label="选择日期" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
         </label>
           </div>
 
           <div className="drawing-tools app-control-palette">
         <div className="tool-menu-wrap">
           {toolsOpen && (
-            <div className="whiteboard-tool-tray" role="menu" aria-label="Whiteboard tools">
+            <div className="whiteboard-tool-tray" role="menu" aria-label="白板工具">
               <div className="tool-mode-row">
-                <button className={tool === "pen" ? "tray-tool selected" : "tray-tool"} onClick={() => { setTool("pen"); setToolsOpen(false); }}><Pencil /> Pen</button>
-                <button className={tool === "eraser" ? "tray-tool selected" : "tray-tool"} onClick={() => { setTool("eraser"); setToolsOpen(false); }}><Eraser /> Eraser</button>
+                <button className={tool === "pen" ? "tray-tool selected" : "tray-tool"} onClick={() => { setTool("pen"); setToolsOpen(false); }}><Pencil /> 画笔</button>
+                <button className={tool === "eraser" ? "tray-tool selected" : "tray-tool"} onClick={() => { setTool("eraser"); setToolsOpen(false); }}><Eraser /> 橡皮擦</button>
               </div>
-              <p>Stickers</p>
+              <p>贴纸</p>
               <div className="sticker-tools">
                 {STICKERS.map((value) => (
-                  <button key={value} className={tool === "sticker" && sticker === value ? "sticker-button selected" : "sticker-button"} onClick={() => { setSticker(value); setTool("sticker"); setToolsOpen(false); }} aria-label={`Use ${value} sticker`}>{value}</button>
+                  <button key={value} className={tool === "sticker" && sticker === value ? "sticker-button selected" : "sticker-button"} onClick={() => { setSticker(value); setTool("sticker"); setToolsOpen(false); }} aria-label={`使用${value}贴纸`}>{value}</button>
                 ))}
               </div>
             </div>
           )}
           <button className={toolsOpen ? "tool-button tools-button selected" : "tool-button tools-button"} aria-expanded={toolsOpen} onClick={() => setToolsOpen((open) => !open)}>
-            <Palette /> Tools
+            <Palette /> 工具
           </button>
         </div>
-        <div className="color-tools" aria-label="Pen colours">
+        <div className="color-tools" aria-label="画笔颜色">
           {COLORS.map((value) => (
             <button
               key={value}
@@ -309,16 +309,16 @@ export function WhiteboardApp() {
           ))}
         </div>
         <div className="history-tools">
-          <button className="tool-button" onClick={() => void undo()} disabled={strokes.length === 0}><RotateCcw /> Undo</button>
-          <button className="tool-button" onClick={() => void redo()} disabled={redoStack.length === 0}><RotateCcw className="flip-horizontal" /> Redo</button>
-          <button className="tool-button danger-text" onClick={() => setConfirmClear(true)} disabled={strokes.length === 0}><Trash2 /> Clear</button>
+          <button className="tool-button" onClick={() => void undo()} disabled={strokes.length === 0}><RotateCcw /> 撤销</button>
+          <button className="tool-button" onClick={() => void redo()} disabled={redoStack.length === 0}><RotateCcw className="flip-horizontal" /> 重做</button>
+          <button className="tool-button danger-text" onClick={() => setConfirmClear(true)} disabled={strokes.length === 0}><Trash2 /> 清除</button>
         </div>
           </div>
         </div>
       </div>
 
-      <ConfirmDialog open={confirmClear} title="Clear this whiteboard?" confirmLabel="Clear board" onCancel={() => setConfirmClear(false)} onConfirm={() => void clear()}>
-        Everything drawn on {longDate(selectedDate)} will be removed.
+      <ConfirmDialog open={confirmClear} title="清除白板？" confirmLabel="清除" onCancel={() => setConfirmClear(false)} onConfirm={() => void clear()}>
+        {longDate(selectedDate)} 上的所有内容将被清除。
       </ConfirmDialog>
     </section>
   );

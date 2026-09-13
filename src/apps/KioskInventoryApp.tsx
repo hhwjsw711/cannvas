@@ -77,28 +77,28 @@ export function KioskInventoryApp() {
     <section className="kiosk-inventory-app">
       <header className="kiosk-inventory-header">
         <div>
-          <div className="kiosk-inventory-title"><span><Box /></span><h1>Inventory</h1></div>
-          <p>Find where something lives. Add or edit items from your phone.</p>
+          <div className="kiosk-inventory-title"><span><Box /></span><h1>物品清单</h1></div>
+          <p>查找物品存放位置。用手机添加或编辑。</p>
         </div>
         <label className="kiosk-inventory-search">
           <Search />
           <input
             type="search"
-            aria-label="Search inventory"
+            aria-label="搜索物品"
             value={search}
-            placeholder="Search items or locations"
+            placeholder="搜索物品或位置"
             onChange={(event) => setSearch(event.target.value)}
           />
         </label>
       </header>
 
-      {loading && <div className="kiosk-inventory-state"><LoaderCircle className="spin" />Opening inventory…</div>}
-      {!loading && message && <div className="kiosk-inventory-state"><Box /><strong>{message}</strong><span>The private phone app still requires your account.</span></div>}
+      {loading && <div className="kiosk-inventory-state"><LoaderCircle className="spin" />正在打开物品清单…</div>}
+      {!loading && message && <div className="kiosk-inventory-state"><Box /><strong>{message}</strong><span>手机端应用需要登录账号。</span></div>}
       {!loading && !message && visibleItems.length === 0 && (
-        <div className="kiosk-inventory-state"><Search /><strong>No matching items</strong><span>Try a different item, category, or location.</span></div>
+        <div className="kiosk-inventory-state"><Search /><strong>没有匹配的物品</strong><span>试试搜索其他物品、分类或位置。</span></div>
       )}
       {!loading && !message && visibleItems.length > 0 && (
-        <div className="kiosk-inventory-grid" aria-label="Household inventory">
+        <div className="kiosk-inventory-grid" aria-label="家中物品清单">
           {visibleItems.map((item) => (
             <article className="kiosk-inventory-card" key={item._id}>
               <div className="kiosk-inventory-photo">
@@ -108,7 +108,7 @@ export function KioskInventoryApp() {
                 <span>{item.category}</span>
                 <h2>{item.title}</h2>
                 <p><MapPin />{item.currentLocationName}</p>
-                <small>{item.condition}{item.quantity > 1 ? ` · ${item.quantity} items` : ""}</small>
+                <small>{item.condition}{item.quantity > 1 ? ` · ${item.quantity} 件` : ""}</small>
               </div>
             </article>
           ))}

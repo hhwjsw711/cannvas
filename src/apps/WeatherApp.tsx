@@ -124,16 +124,16 @@ type Condition = {
 };
 
 function conditionFor(code: number): Condition {
-  if (code === 0) return { label: "Clear", icon: Sun };
-  if (code <= 2) return { label: "Partly cloudy", icon: CloudSun };
-  if (code === 3) return { label: "Cloudy", icon: Cloud };
-  if (code === 45 || code === 48) return { label: "Foggy", icon: CloudFog };
-  if (code >= 51 && code <= 67) return { label: code >= 61 ? "Rain" : "Drizzle", icon: CloudRain };
-  if (code >= 71 && code <= 77) return { label: "Snow", icon: Snowflake };
-  if (code >= 80 && code <= 82) return { label: "Showers", icon: CloudRain };
-  if (code >= 85 && code <= 86) return { label: "Snow showers", icon: Snowflake };
-  if (code >= 95) return { label: "Thunderstorms", icon: CloudLightning };
-  return { label: "Mixed conditions", icon: CloudSun };
+  if (code === 0) return { label: "晴", icon: Sun };
+  if (code <= 2) return { label: "局部多云", icon: CloudSun };
+  if (code === 3) return { label: "阴", icon: Cloud };
+  if (code === 45 || code === 48) return { label: "雾", icon: CloudFog };
+  if (code >= 51 && code <= 67) return { label: code >= 61 ? "雨" : "毛毛雨", icon: CloudRain };
+  if (code >= 71 && code <= 77) return { label: "雪", icon: Snowflake };
+  if (code >= 80 && code <= 82) return { label: "阵雨", icon: CloudRain };
+  if (code >= 85 && code <= 86) return { label: "阵雪", icon: Snowflake };
+  if (code >= 95) return { label: "雷暴", icon: CloudLightning };
+  return { label: "混合天气", icon: CloudSun };
 }
 
 function round(value: number | undefined, fallback = 0) {
@@ -150,26 +150,26 @@ function readWeatherCache(): WeatherForecast | null {
 }
 
 function hourLabel(value: string, index: number) {
-  if (index === 0) return "Now";
+  if (index === 0) return "现在";
   return new Date(value).toLocaleTimeString("zh-CN", { hour: "numeric" });
 }
 
 function dayLabel(value: string, index: number) {
-  if (index === 0) return "Today";
+  if (index === 0) return "今天";
   return new Date(`${value}T12:00:00`).toLocaleDateString("zh-CN", { weekday: "short" });
 }
 
 function windDirection(degrees: number) {
-  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const directions = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"];
   return directions[Math.round(degrees / 45) % directions.length];
 }
 
 function uvLabel(value: number) {
-  if (value < 3) return "Low";
-  if (value < 6) return "Moderate";
-  if (value < 8) return "High";
-  if (value < 11) return "Very high";
-  return "Extreme";
+  if (value < 3) return "低";
+  if (value < 6) return "中等";
+  if (value < 8) return "高";
+  if (value < 11) return "很高";
+  return "极高";
 }
 
 function WeatherIcon({ code, className }: { code: number; className?: string }) {
@@ -218,7 +218,7 @@ function RadarScrubber({
         className="weather-radar-scrubber"
         role="slider"
         tabIndex={0}
-        aria-label="Radar time"
+        aria-label="雷达时间"
         aria-valuemin={0}
         aria-valuemax={Math.max(0, frames.length - 1)}
         aria-valuenow={frameIndex}
@@ -394,26 +394,26 @@ function WeatherRadar() {
     <section className="weather-card weather-radar-card">
       <div className="weather-card-heading">
         <div>
-          <span>Precipitation radar</span>
-          <strong>{frame ? radarTime(frame) : "Loading radar"}</strong>
+          <span>降雨雷达</span>
+          <strong>{frame ? radarTime(frame) : "正在加载雷达"}</strong>
         </div>
-        <small>{hasForecastFrames ? "Observed and forecast" : "Observed, past 2 hours"}</small>
+        <small>{hasForecastFrames ? "观测与预报" : "过去 2 小时观测"}</small>
       </div>
       <div className="weather-radar-map" ref={containerRef} aria-label="丽水降雨雷达图">
-        {radarError && <div className="weather-radar-error">Radar is temporarily unavailable</div>}
-        <div className="weather-radar-key"><i />Light <i />Heavy</div>
+        {radarError && <div className="weather-radar-error">雷达暂时不可用</div>}
+        <div className="weather-radar-key"><i />弱 <i />强</div>
       </div>
       <div className="weather-radar-controls">
-        <button onClick={() => setFrameIndex((index) => Math.max(0, index - 1))} disabled={frameIndex === 0} aria-label="Previous radar frame"><ChevronLeft /></button>
-        <button className="weather-radar-play" onClick={() => setPlaying((value) => !value)} disabled={frames.length < 2} aria-label={playing ? "Pause radar" : "Play radar"}>{playing ? <Pause /> : <Play />}</button>
+        <button onClick={() => setFrameIndex((index) => Math.max(0, index - 1))} disabled={frameIndex === 0} aria-label="上一帧"><ChevronLeft /></button>
+        <button className="weather-radar-play" onClick={() => setPlaying((value) => !value)} disabled={frames.length < 2} aria-label={playing ? "暂停" : "播放"}>{playing ? <Pause /> : <Play />}</button>
         <RadarScrubber
           frames={frames}
           frameIndex={frameIndex}
           onChange={(index) => { setPlaying(false); setFrameIndex(index); }}
         />
-        <button onClick={() => setFrameIndex((index) => Math.min(frames.length - 1, index + 1))} disabled={frameIndex >= frames.length - 1} aria-label="Next radar frame"><ChevronRight /></button>
+        <button onClick={() => setFrameIndex((index) => Math.min(frames.length - 1, index + 1))} disabled={frameIndex >= frames.length - 1} aria-label="下一帧"><ChevronRight /></button>
       </div>
-      {!hasForecastFrames && <p className="weather-radar-note">The radar shows measured rain. The 12-hour timeline shows what is expected next.</p>}
+      {!hasForecastFrames && <p className="weather-radar-note">雷达显示已测降雨。12 小时时间线显示预期降雨。</p>}
     </section>
   );
 }
@@ -462,7 +462,7 @@ export function WeatherApp() {
       <section className="weather-app weather-app-loading">
         <RefreshCw />
         <strong>{error ? "天气暂时不可用" : "正在加载丽水天气"}</strong>
-        {error && <button onClick={() => { setLoading(true); setRefreshVersion((value) => value + 1); }}>Try again</button>}
+        {error && <button onClick={() => { setLoading(true); setRefreshVersion((value) => value + 1); }}>重试</button>}
       </section>
     );
   }
@@ -484,8 +484,8 @@ export function WeatherApp() {
   const todayLow = forecast.daily.temperature_2m_min[0];
   const nextRain = hourly.find(({ rainChance, rain }) => rainChance >= 30 || rain > 0);
   const rainSummary = nextRain
-    ? `${round(nextRain.rainChance)}% chance of rain ${nextRain === hourly[0] ? "now" : `around ${hourLabel(nextRain.time, 1)}`}`
-    : "No rain expected in the next 12 hours";
+    ? `${round(nextRain.rainChance)}% 降雨概率 ${nextRain === hourly[0] ? "现在" : `${hourLabel(nextRain.time, 1)}左右`}`
+    : "未来 12 小时无雨";
   const updatedAt = new Date(forecast.current.time).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" });
 
   return (
@@ -497,23 +497,23 @@ export function WeatherApp() {
             <p>丽水</p>
             <div className="weather-current-temperature">{round(forecast.current.temperature_2m)}°</div>
             <strong>{condition.label}</strong>
-            <span>Feels like {round(forecast.current.apparent_temperature)}° · H:{round(todayHigh)}° L:{round(todayLow)}°</span>
+            <span>体感 {round(forecast.current.apparent_temperature)}° · 高:{round(todayHigh)}° 低:{round(todayLow)}°</span>
           </div>
           <CurrentIcon className="weather-current-icon" />
           <button
             className="weather-refresh"
             onClick={() => { setLoading(true); setRefreshVersion((value) => value + 1); }}
             disabled={loading}
-            aria-label="Refresh weather"
+            aria-label="刷新天气"
           ><RefreshCw /></button>
         </header>
 
-        {error && <div className="weather-stale-message">Could not refresh. Showing the last forecast saved on this display.</div>}
+        {error && <div className="weather-stale-message">刷新失败，显示上次保存的预报。</div>}
 
         <section className="weather-card weather-hourly-card">
           <div className="weather-card-heading">
-            <div><span>Next 12 hours</span><strong>{rainSummary}</strong></div>
-            <small>Updated {updatedAt}</small>
+            <div><span>未来 12 小时</span><strong>{rainSummary}</strong></div>
+            <small>更新于 {updatedAt}</small>
           </div>
           <div className="weather-hourly-row">
             {hourly.map((hour, index) => (
@@ -530,7 +530,7 @@ export function WeatherApp() {
         <WeatherRadar />
 
         <section className="weather-card weather-daily-card">
-          <div className="weather-card-heading"><div><span>10-day forecast</span><strong>Daily outlook</strong></div></div>
+          <div className="weather-card-heading"><div><span>10 天预报</span><strong>每日展望</strong></div></div>
           <div className="weather-daily-list">
             {forecast.daily.time.map((time, index) => (
               <article key={time}>
@@ -546,15 +546,15 @@ export function WeatherApp() {
         </section>
 
         <div className="weather-details-grid">
-          <article className="weather-card"><div><Wind /><span>Wind</span></div><strong>{round(forecast.current.wind_speed_10m)} <small>km/h</small></strong><p>{windDirection(forecast.current.wind_direction_10m)} · Gusts {round(forecast.current.wind_gusts_10m)} km/h</p><Navigation style={{ transform: `rotate(${forecast.current.wind_direction_10m + 180}deg)` }} /></article>
-          <article className="weather-card"><div><Droplets /><span>Humidity</span></div><strong>{round(forecast.current.relative_humidity_2m)}%</strong><p>Feels like {round(forecast.current.apparent_temperature)}°</p></article>
-          <article className="weather-card"><div><Sun /><span>UV index</span></div><strong>{round(forecast.hourly.uv_index[detailIndex])}</strong><p>{uvLabel(forecast.hourly.uv_index[detailIndex])}</p><i className="uv-scale" /></article>
-          <article className="weather-card"><div><Eye /><span>Visibility</span></div><strong>{round(forecast.hourly.visibility[detailIndex] / 1000)} <small>km</small></strong><p>{forecast.hourly.visibility[detailIndex] >= 10000 ? "Clear view" : "Reduced visibility"}</p></article>
-          <article className="weather-card"><div><Gauge /><span>Pressure</span></div><strong>{round(forecast.current.pressure_msl)} <small>hPa</small></strong><p>Sea-level pressure</p></article>
-          <article className="weather-card weather-sun-card"><div><Sunset /><span>Sunset</span></div><strong>{new Date(forecast.daily.sunset[0]).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" })}</strong><p><Sunrise /> Sunrise {new Date(forecast.daily.sunrise[0]).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" })}</p></article>
+          <article className="weather-card"><div><Wind /><span>风速</span></div><strong>{round(forecast.current.wind_speed_10m)} <small>km/h</small></strong><p>{windDirection(forecast.current.wind_direction_10m)} · 阵风 {round(forecast.current.wind_gusts_10m)} km/h</p><Navigation style={{ transform: `rotate(${forecast.current.wind_direction_10m + 180}deg)` }} /></article>
+          <article className="weather-card"><div><Droplets /><span>湿度</span></div><strong>{round(forecast.current.relative_humidity_2m)}%</strong><p>体感 {round(forecast.current.apparent_temperature)}°</p></article>
+          <article className="weather-card"><div><Sun /><span>紫外线指数</span></div><strong>{round(forecast.hourly.uv_index[detailIndex])}</strong><p>{uvLabel(forecast.hourly.uv_index[detailIndex])}</p><i className="uv-scale" /></article>
+          <article className="weather-card"><div><Eye /><span>能见度</span></div><strong>{round(forecast.hourly.visibility[detailIndex] / 1000)} <small>km</small></strong><p>{forecast.hourly.visibility[detailIndex] >= 10000 ? "视野清晰" : "能见度降低"}</p></article>
+          <article className="weather-card"><div><Gauge /><span>气压</span></div><strong>{round(forecast.current.pressure_msl)} <small>hPa</small></strong><p>海平面气压</p></article>
+          <article className="weather-card weather-sun-card"><div><Sunset /><span>日落</span></div><strong>{new Date(forecast.daily.sunset[0]).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" })}</strong><p><Sunrise /> 日出 {new Date(forecast.daily.sunrise[0]).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" })}</p></article>
         </div>
 
-        <footer className="weather-attribution">Forecast by Open-Meteo · Radar by RainViewer · Map by OpenStreetMap</footer>
+        <footer className="weather-attribution">预报由 Open-Meteo 提供 · 雷达由 RainViewer 提供 · 地图由 OpenStreetMap 提供</footer>
       </div>
     </section>
   );

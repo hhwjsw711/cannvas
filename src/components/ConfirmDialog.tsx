@@ -31,7 +31,7 @@ export function ConfirmDialog({
         <h2 id="dialog-title">{title}</h2>
         <div className="dialog-copy">{children}</div>
         <div className="dialog-actions">
-          <button className="button secondary" onClick={onCancel}>Keep it</button>
+          <button className="button secondary" onClick={onCancel}>保留</button>
           <button className="button danger" onClick={onConfirm}>{confirmLabel}</button>
         </div>
       </section>

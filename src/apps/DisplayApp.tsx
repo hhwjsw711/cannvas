@@ -117,10 +117,10 @@ export function DisplayApp({
         <div className="display-time">{now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
       </div>
 
-      <aside
+        <aside
         ref={calendarWidgetRef}
         className={`calendar-home-widget${calendarCanExpand ? " has-more" : ""}`}
-        aria-label="Open the calendar app"
+        aria-label="打开日历应用"
         role="button"
         tabIndex={0}
         onPointerDown={(event) => event.stopPropagation()}
@@ -133,7 +133,7 @@ export function DisplayApp({
         }}
       >
         <section>
-          <h2>Today</h2>
+          <h2>今天</h2>
           <div className="calendar-home-list">
             {todayEvents.slice(0, 3).map((event) => {
               const hasPassed = !event.allDay && new Date(event.end) <= now;
@@ -144,11 +144,11 @@ export function DisplayApp({
                 </article>
               );
             })}
-            {calendarStatus === "ready" && todayEvents.length === 0 && <p className="calendar-home-empty">Nothing planned today</p>}
+            {calendarStatus === "ready" && todayEvents.length === 0 && <p className="calendar-home-empty">今天没有日程</p>}
           </div>
         </section>
         <section>
-          <h2>Upcoming</h2>
+          <h2>未来</h2>
           <div className="calendar-home-list upcoming">
             {upcomingEvents.map(({ event, date, key }) => (
               <article key={key}>
@@ -157,11 +157,11 @@ export function DisplayApp({
                 <small><Clock3 /> {calendarEventTime(event)}</small>
               </article>
             ))}
-            {calendarStatus === "ready" && upcomingEvents.length === 0 && <p className="calendar-home-empty">Nothing in the next 7 days</p>}
+            {calendarStatus === "ready" && upcomingEvents.length === 0 && <p className="calendar-home-empty">未来 7 天没有日程</p>}
           </div>
         </section>
         {calendarStatus !== "ready" && calendarEvents.length === 0 && (
-          <p className="calendar-home-status">{calendarStatus === "not-configured" ? "Connect Google Calendar to see your schedule" : calendarStatus === "error" ? "Calendar is temporarily unavailable" : "Loading calendar…"}</p>
+          <p className="calendar-home-status">{calendarStatus === "not-configured" ? "连接 Google 日历以查看日程" : calendarStatus === "error" ? "日历暂时不可用" : "正在加载日历…"}</p>
         )}
       </aside>
 
@@ -178,9 +178,9 @@ export function DisplayApp({
           </span>
         </button>
         <aside className="weather-panel news-panel">
-          <div className="news-header"><span>BBC News</span></div>
+          <div className="news-header"><span>新闻</span></div>
           <div className="news-headlines">
-            {(newsHeadlines.length > 0 ? newsHeadlines : [{ title: "Loading latest headlines…", url: "" }]).slice(0, 3).map((headline) => (
+            {(newsHeadlines.length > 0 ? newsHeadlines : [{ title: "正在加载最新新闻…", url: "" }]).slice(0, 3).map((headline) => (
               <p key={headline.title}>{headline.title}</p>
             ))}
           </div>
@@ -189,7 +189,7 @@ export function DisplayApp({
           <button
             type="button"
             className={`display-audio-toggle${videoMuted ? "" : " is-playing"}`}
-            aria-label={videoMuted ? "Turn video sound on" : "Mute video"}
+            aria-label={videoMuted ? "开启视频声音" : "静音视频"}
             aria-pressed={!videoMuted}
             onPointerDown={(event) => {
               // Keep this tap from waking the previous app, but still restart

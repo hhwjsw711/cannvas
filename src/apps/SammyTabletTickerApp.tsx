@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import type { TabletId, TabletSchedule } from "../data/types";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
 
 function todayKey() {
   const today = new Date();
@@ -35,12 +35,12 @@ function calendarDays(month: Date) {
 }
 
 function dueState(tablet: TabletSchedule) {
-  if (!tablet.dueDate) return { label: "Choose a due date", className: "unset" };
+  if (!tablet.dueDate) return { label: "选择日期", className: "unset" };
   const days = Math.round((fromDateKey(tablet.dueDate).getTime() - fromDateKey(todayKey()).getTime()) / 86_400_000);
-  if (days < 0) return { label: `${Math.abs(days)} day${days === -1 ? "" : "s"} overdue`, className: "overdue" };
-  if (days === 0) return { label: "Due today", className: "today" };
-  if (days === 1) return { label: "Due tomorrow", className: "soon" };
-  return { label: `Due in ${days} days`, className: days <= 14 ? "soon" : "scheduled" };
+  if (days < 0) return { label: `逾期 ${Math.abs(days)} 天`, className: "overdue" };
+  if (days === 0) return { label: "今天到期", className: "today" };
+  if (days === 1) return { label: "明天到期", className: "soon" };
+  return { label: `${days} 天后到期`, className: days <= 14 ? "soon" : "scheduled" };
 }
 
 export function SammyTabletTickerApp() {
@@ -76,12 +76,12 @@ export function SammyTabletTickerApp() {
       <header className="sammy-tablets-header">
         <div className="sammy-title-icon"><HeartPulse /></div>
         <div>
-          <h1>Sammy</h1>
-          <p>Set each next dose, then tick it off when Sammy has had it.</p>
+          <h1>宠物喂药</h1>
+          <p>设置下次服药时间，给药后勾选确认。</p>
         </div>
         <button className="tablet-history-button" onClick={() => setShowHistory(true)}>
           <History />
-          View history
+          服药记录
           <span>{tabletCompletions.length}</span>
         </button>
       </header>
@@ -96,17 +96,17 @@ export function SammyTabletTickerApp() {
                 <div className="tablet-mark"><ShieldCheck /></div>
                 <div className="tablet-name">
                   <h2>{tablet.name}</h2>
-                  <p>{tablet.purpose} · {tablet.id === "nuheart" ? "monthly, except worm tablet months" : "every 3 months"}</p>
+                  <p>{tablet.purpose} · {tablet.id === "nuheart" ? "每月一次，驱虫月除外" : "每 3 个月"}</p>
                 </div>
                 <span className={`tablet-status ${status.className}`}>{status.label}</span>
               </div>
 
               <div className="tablet-card-actions">
-                <button className="tablet-date-field" onClick={() => openDatePicker(tablet)} aria-label={`Choose next due date for ${tablet.name}`}>
+                <button className="tablet-date-field" onClick={() => openDatePicker(tablet)} aria-label={`选择${tablet.name}的下次日期`}>
                   <CalendarDays />
                   <span>
-                    <small>Next due</small>
-                    <strong>{tablet.dueDate ? formatDate(tablet.dueDate) : "Tap to set a date"}</strong>
+                    <small>下次服药</small>
+                    <strong>{tablet.dueDate ? formatDate(tablet.dueDate) : "点击设置日期"}</strong>
                   </span>
                 </button>
                 <button
@@ -115,15 +115,15 @@ export function SammyTabletTickerApp() {
                   onClick={() => void completeTablet(tablet.id, todayKey())}
                 >
                   <Check strokeWidth={3.2} />
-                  Mark as given
+                  已给药
                 </button>
               </div>
 
               {latest && (
                 <div className="tablet-last-given">
-                  <span>Last given {formatDate(latest.takenDate)}</span>
+                  <span>上次给药 {formatDate(latest.takenDate)}</span>
                   {latest.previousDueDate !== undefined && (
-                    <button onClick={() => void undoTabletCompletion(tablet.id)}><RotateCcw /> Undo</button>
+                    <button onClick={() => void undoTabletCompletion(tablet.id)}><RotateCcw /> 撤销</button>
                   )}
                 </div>
               )}
@@ -137,10 +137,10 @@ export function SammyTabletTickerApp() {
           <section className="dialog-card tablet-history-card" role="dialog" aria-modal="true" aria-labelledby="tablet-history-title" onPointerDown={(event) => event.stopPropagation()}>
             <header>
               <div>
-                <h2 id="tablet-history-title">Sammy's tablet history</h2>
-                <p>{tabletCompletions.length} recorded dose{tabletCompletions.length === 1 ? "" : "s"}</p>
+                <h2 id="tablet-history-title">服药记录</h2>
+                <p>{tabletCompletions.length} 次记录</p>
               </div>
-              <button className="tablet-history-close" onClick={() => setShowHistory(false)} aria-label="Close tablet history"><X /></button>
+              <button className="tablet-history-close" onClick={() => setShowHistory(false)} aria-label="关闭服药记录"><X /></button>
             </header>
             <div className="tablet-history-list">
               {sortedHistory.map((completion) => {
@@ -164,16 +164,16 @@ export function SammyTabletTickerApp() {
           <section className="dialog-card tablet-date-picker-card" role="dialog" aria-modal="true" aria-labelledby="tablet-date-picker-title" onPointerDown={(event) => event.stopPropagation()}>
             <header>
               <div>
-                <h2 id="tablet-date-picker-title">Next {dateTablet.name} dose</h2>
-                <p>Choose the date Sammy is next due.</p>
+                <h2 id="tablet-date-picker-title">{dateTablet.name}下次服药</h2>
+                <p>选择下次给药日期。</p>
               </div>
-              <button className="tablet-history-close" onClick={() => setDateTabletId(null)} aria-label="Close date picker"><X /></button>
+              <button className="tablet-history-close" onClick={() => setDateTabletId(null)} aria-label="关闭日期选择器"><X /></button>
             </header>
 
             <div className="tablet-picker-month">
-              <button onClick={() => setPickerMonth(new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft /></button>
+              <button onClick={() => setPickerMonth(new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() - 1, 1))} aria-label="上个月"><ChevronLeft /></button>
               <strong>{pickerMonth.toLocaleDateString("zh-CN", { month: "long", year: "numeric" })}</strong>
-              <button onClick={() => setPickerMonth(new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight /></button>
+              <button onClick={() => setPickerMonth(new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() + 1, 1))} aria-label="下个月"><ChevronRight /></button>
             </div>
 
             <div className="tablet-picker-weekdays" aria-hidden="true">
@@ -200,8 +200,8 @@ export function SammyTabletTickerApp() {
             </div>
 
             <footer className="tablet-picker-actions">
-              {dateTablet.dueDate && <button className="button secondary" onClick={() => void chooseDate("")}>Clear date</button>}
-              <button className="button primary" onClick={() => void chooseDate(todayKey())}>Today</button>
+              {dateTablet.dueDate && <button className="button secondary" onClick={() => void chooseDate("")}>清除日期</button>}
+              <button className="button primary" onClick={() => void chooseDate(todayKey())}>今天</button>
             </footer>
           </section>
         </div>

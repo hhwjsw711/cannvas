@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import { addCalendarDays, calendarDateKey, calendarEventTime, calendarMonthDays, eventsForDate } from "../lib/calendar";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const WEEKDAYS = ["一", "二", "三", "四", "五", "六", "日"];
 
 export function CalendarApp() {
   const { calendarEvents, calendarStatus, loadCalendarRange } = useCannvasData();
@@ -36,13 +36,13 @@ export function CalendarApp() {
     <section className="calendar-app">
       <header className="calendar-header">
         <div>
-          <p className="eyebrow">Our family schedule</p>
+          <p className="eyebrow">家庭日程</p>
           <h1>{month.toLocaleDateString("zh-CN", { month: "long", year: "numeric" })}</h1>
-          <p className="header-note">Events from Mike's personal Google Calendar.</p>
+          <p className="header-note">来自 Google 日历的日程。</p>
         </div>
         <div className="calendar-summary-card">
           <CalendarCheck2 />
-          <span><strong>{nextWeekCount}</strong> events in the next 7 days</span>
+          <span><strong>{nextWeekCount}</strong> 未来 7 天的日程</span>
         </div>
       </header>
 
@@ -58,15 +58,15 @@ export function CalendarApp() {
                 <span className="calendar-day-number">{day.getDate()}</span>
                 <div className="calendar-day-events">
                   {dayEvents.slice(0, 3).map((event) => <span className={event.allDay ? "all-day" : ""} key={event.id}><b>{event.allDay ? "" : calendarEventTime(event)}</b>{event.title}</span>)}
-                  {dayEvents.length > 3 && <small>+{dayEvents.length - 3} more</small>}
+                  {dayEvents.length > 3 && <small>+{dayEvents.length - 3} 更多</small>}
                 </div>
               </button>
             );
           })}
         </div>
 
-        <section className="calendar-agenda" aria-label={`Events for ${selectedDate}`}>
-          <header><div><span>Selected day</span><h2>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long" })}</h2></div><strong>{selectedEvents.length} {selectedEvents.length === 1 ? "event" : "events"}</strong></header>
+        <section className="calendar-agenda" aria-label={`${selectedDate}的日程`}>
+          <header><div><span>所选日期</span><h2>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long" })}</h2></div><strong>{selectedEvents.length} 个日程</strong></header>
           <div className="calendar-agenda-list">
             {selectedEvents.map((event) => (
               <article key={event.id}>
@@ -74,22 +74,22 @@ export function CalendarApp() {
                 <div><h3>{event.title}</h3><p><Clock3 /> {calendarEventTime(event)}{event.location && <><MapPin /> {event.location}</>}</p></div>
               </article>
             ))}
-            {selectedEvents.length === 0 && <div className="calendar-empty-day"><CalendarCheck2 /><span>Nothing planned for this day</span></div>}
+            {selectedEvents.length === 0 && <div className="calendar-empty-day"><CalendarCheck2 /><span>今天没有日程</span></div>}
           </div>
         </section>
 
         {calendarStatus !== "ready" && calendarEvents.length === 0 && (
           <div className="calendar-connection-state">
             <CalendarCheck2 />
-            <strong>{calendarStatus === "not-configured" ? "Google Calendar is ready to connect" : calendarStatus === "error" ? "Calendar is temporarily unavailable" : "Loading calendar…"}</strong>
-            {calendarStatus === "not-configured" && <span>Add the primary calendar's secret iCal address to start syncing.</span>}
+            <strong>{calendarStatus === "not-configured" ? "连接 Google 日历" : calendarStatus === "error" ? "日历暂时不可用" : "正在加载日历…"}</strong>
+            {calendarStatus === "not-configured" && <span>添加主日历的 iCal 地址即可开始同步。</span>}
           </div>
         )}
 
         <footer className="calendar-actions app-control-palette">
-          <button className="icon-button" aria-label="Previous month" onClick={() => moveMonth(-1)}><ChevronLeft /></button>
-          <button className="button secondary" onClick={returnToToday}>Today</button>
-          <button className="icon-button" aria-label="Next month" onClick={() => moveMonth(1)}><ChevronRight /></button>
+          <button className="icon-button" aria-label="上个月" onClick={() => moveMonth(-1)}><ChevronLeft /></button>
+          <button className="button secondary" onClick={returnToToday}>今天</button>
+          <button className="icon-button" aria-label="下个月" onClick={() => moveMonth(1)}><ChevronRight /></button>
         </footer>
       </div>
     </section>
