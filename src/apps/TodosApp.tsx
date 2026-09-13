@@ -4,9 +4,8 @@ import { useCannvasData } from "../data/DataProvider";
 import type { Todo, TodoAssignee, TodoPriority } from "../data/types";
 
 const PEOPLE: Array<{ id: TodoAssignee; name: string; avatar: string }> = [
-  { id: "mum", name: "妈妈", avatar: "/avatars/mum.png" },
-  { id: "josh", name: "孩子", avatar: "/avatars/josh.png" },
-  { id: "dad", name: "爸爸", avatar: "/avatars/dad.png" },
+  { id: "mum", name: "梅宏杰", avatar: "/avatars/mum.png" },
+  { id: "dad", name: "胡洪伟", avatar: "/avatars/dad.png" },
 ];
 const PRIORITIES: TodoPriority[] = ["low", "medium", "high"];
 const PRIORITY_ORDER: Record<TodoPriority, number> = { high: 0, medium: 1, low: 2 };
@@ -31,7 +30,7 @@ export function TodosApp() {
   const { todos, addTodo, updateTodo, toggleTodo } = useCannvasData();
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [title, setTitle] = useState("");
-  const [assignee, setAssignee] = useState<TodoAssignee>("josh");
+  const [assignee, setAssignee] = useState<TodoAssignee>("dad");
   const [priority, setPriority] = useState<TodoPriority>("medium");
   const [dueDate, setDueDate] = useState("");
   const openCount = todos.filter((todo) => !todo.completed).length;
@@ -41,7 +40,7 @@ export function TodosApp() {
     PEOPLE.map(({ id }) => [id, todos.filter((todo) => todo.assignee === id).sort(sortTodos)]),
   ) as Record<TodoAssignee, Todo[]>, [todos]);
 
-  const openAdd = (selectedAssignee: TodoAssignee = "josh") => {
+  const openAdd = (selectedAssignee: TodoAssignee = "dad") => {
     setTitle("");
     setAssignee(selectedAssignee);
     setPriority("medium");
