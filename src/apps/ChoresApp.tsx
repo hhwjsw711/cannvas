@@ -14,11 +14,10 @@ export function ChoresApp() {
   const [choreToRemove, setChoreToRemove] = useState<string | null>(null);
   const [choreToEdit, setChoreToEdit] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [value, setValue] = useState("0.50");
+  const [value, setValue] = useState("2.00");
   const [category, setCategory] = useState<ChoreCategory>("standard");
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
-  const sunday = days[6];
-  const isInterestPayday = addDays(sunday, 7).getMonth() !== sunday.getMonth();
+  const isPouchPayday = new Date().getDay() === 0;
   const completionKeys = useMemo(
     () => new Set(completions.map(({ choreId, date }) => `${choreId}:${date}`)),
     [completions],
@@ -41,7 +40,7 @@ export function ChoresApp() {
     if (!name.trim() || !Number.isFinite(valueCents) || valueCents < 0) return;
     await addChore(name.trim(), valueCents, category);
     setName("");
-    setValue("0.50");
+    setValue("2.00");
     setShowAdd(false);
   };
 
@@ -56,7 +55,7 @@ export function ChoresApp() {
 
   const openAdd = () => {
     setName("");
-    setValue("0.50");
+    setValue("2.00");
     setCategory("standard");
     setShowAdd(true);
   };
@@ -75,28 +74,28 @@ export function ChoresApp() {
       <header className="chores-header">
         <div>
           <p className="eyebrow">每周任务</p>
-          <h1>家务挑战 <Sparkles className="sparkle" /></h1>
-          <p className="header-note">小任务，大成就。</p>
+          <h1>家务小荷包 <Sparkles className="sparkle" /></h1>
+          <p className="header-note">一起干活，一起攒钱。</p>
         </div>
         <div className="reward-card">
-          <span>本周已获奖励</span>
+          <span>本周已攒入小荷包</span>
           <strong>{money(earned)}</strong>
           <div className="reward-progress"><span style={{ width: `${possible ? Math.min(100, (earned / possible) * 100) : 0}%` }} /></div>
-          <small>{money(possible)} 可获奖励</small>
+          <small>{money(possible)} 可攒上限</small>
           <small className="standard-summary">日常完成 {standardDone}/{standardPossible}</small>
         </div>
       </header>
 
-      {isInterestPayday && (
+      {isPouchPayday && isThisWeek && (
         <div className="interest-payday-banner" role="status">
           <div className="interest-payday-icon"><CircleDollarSign /></div>
           <div>
-            <strong>利息发薪日！</strong>
-            <span>{sunday.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })} 是本月最后一个周日。</span>
+            <strong>小荷包存钱日！</strong>
+            <span>今天是周日下午，把本周攒的 {money(earned)} 一起转进支付宝小荷包。</span>
           </div>
           <div className="interest-payday-rate">
-            <strong>10%</strong>
-            <span>爸爸银行奖励存入成长罐</span>
+            <strong>{money(earned)}</strong>
+            <span>本周小荷包待转入</span>
           </div>
         </div>
       )}
@@ -154,7 +153,7 @@ export function ChoresApp() {
         )}
         <footer className="chores-actions app-control-palette">
           <button className="button primary" onClick={openAdd}><Plus /> 添加家务</button>
-          <button className="button secondary pocket-money-info-button" onClick={() => setShowInfo(true)}><CircleHelp /> 零花钱规则</button>
+          <button className="button secondary pocket-money-info-button" onClick={() => setShowInfo(true)}><CircleHelp /> 小荷包规则</button>
         </footer>
       </div>
 
@@ -194,16 +193,16 @@ export function ChoresApp() {
         <div className="dialog-backdrop" role="presentation" onPointerDown={() => setShowInfo(false)}>
           <section className="dialog-card pocket-money-card" role="dialog" aria-modal="true" aria-labelledby="pocket-money-title" onPointerDown={(event) => event.stopPropagation()}>
             <div className="dialog-symbol info"><CircleHelp /></div>
-            <h2 id="pocket-money-title">零花钱规则</h2>
+            <h2 id="pocket-money-title">小荷包规则</h2>
             <div className="category-explanations">
-              <div className="standard"><strong>日常</strong><p>每周日常需要完成的家庭责任。每次勾选不单独付费。</p></div>
-              <div className="bonus"><strong>奖励</strong><p>可选的额外任务。每次完成勾选即可获得对应金额。</p></div>
+              <div className="standard"><strong>日常</strong><p>每周共同的家庭责任，轮流认领。不攒钱，是爱的打卡。</p></div>
+              <div className="bonus"><strong>奖励</strong><p>可选的额外任务。每次完成勾选，就把对应金额攒进小荷包。</p></div>
             </div>
             <ul>
-              <li>每周日下午发零花钱。</li>
-              <li>每周 ￥3 分为 ￥1 消费、￥1 成长、￥1 慈善。</li>
-              <li>孩子可以自行选择奖励钱存入哪个罐子。</li>
-              <li>成长罐每月获得 10% 爸爸银行利息。</li>
+              <li>奖励家务每次 ¥2~5，勾选即攒入本周小荷包。</li>
+              <li>每周日下午，本周攒的钱一起转进支付宝情侣小荷包。</li>
+              <li>转账规则：本周干活多的人少掏钱，干活少的那个多转一点。</li>
+              <li>攒下的钱用在哪里，两个人一起说了算。</li>
             </ul>
             <button className="button primary" onClick={() => setShowInfo(false)}>知道了</button>
           </section>
