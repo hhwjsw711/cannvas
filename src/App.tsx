@@ -2,9 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckSquare2,
+  Cpu,
   Dog,
   Ellipsis,
-  HousePlug,
   Keyboard,
   LayoutDashboard,
   ListTodo,
@@ -14,8 +14,8 @@ import {
 } from "lucide-react";
 import { CalendarApp } from "./apps/CalendarApp";
 import { ChoresApp } from "./apps/ChoresApp";
+import { ComputeApp } from "./apps/ComputeApp";
 import { DisplayApp } from "./apps/DisplayApp";
-import { HomeAutomationApp } from "./apps/HomeAutomationApp";
 import { KioskInventoryApp } from "./apps/KioskInventoryApp";
 import { SammyTabletTickerApp } from "./apps/SammyTabletTickerApp";
 import { TodosApp } from "./apps/TodosApp";
@@ -30,7 +30,7 @@ type AppId =
   | "todos"
   | "calendar"
   | "weather"
-  | "home-automation"
+  | "compute"
   | "sammy-tablets"
   | "inventory"
   | "display";
@@ -41,7 +41,7 @@ const primaryApps = [
   { id: "todos" as const, label: "待办", icon: ListTodo },
   { id: "calendar" as const, label: "日历", icon: CalendarDays },
   { id: "weather" as const, label: "天气", icon: CloudSun },
-  { id: "home-automation" as const, label: "智能家居", icon: HousePlug },
+  { id: "compute" as const, label: "算力", icon: Cpu },
 ];
 
 const moreApps = [
@@ -140,7 +140,7 @@ export function App() {
         {isReady && activeApp === "todos" && <TodosApp />}
         {isReady && activeApp === "calendar" && <CalendarApp />}
         {isReady && activeApp === "weather" && <WeatherApp />}
-        {isReady && activeApp === "home-automation" && <HomeAutomationApp />}
+        {isReady && activeApp === "compute" && <ComputeApp />}
         {isReady && activeApp === "sammy-tablets" && <SammyTabletTickerApp />}
         {isReady && activeApp === "inventory" && <KioskInventoryApp />}
         {isReady && activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} />}

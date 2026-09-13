@@ -1,0 +1,336 @@
+#!/usr/bin/python3
+"""Cannvas static file server for TX2 (Python 3.6 compatible).
+
+Serves the built Cannvas frontend on 127.0.0.1:4173 and exposes a small
+read-only system status API (/api/system/stats) so the Compute dashboard
+can display live hardware and service health. Only depends on the Python
+3.6 standard library.
+"""
+from __future__ import print_function
+
+import json
+import os
+import re
+import socketserver
+import subprocess
+import sys
+import time
+from http.server import SimpleHTTPRequestHandler, HTTPServer
+
+# Resolve the web root relative to this script so it works from any cwd.
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+WEB_ROOT = os.environ.get("CANNVAS_WEB_ROOT", os.path.join(SCRIPT_DIR, "current"))
+PORT = int(os.environ.get("CANNVAS_PORT", "4173"))
+
+LLAMA_PORT = int(os.environ.get("CANNVAS_LLAMA_PORT", "8080"))
+STATS_CACHE_SECONDS = 1.5
+LLAMA_CACHE_SECONDS = 15.0
+
+# Services shown on the compute dashboard (labels assigned by the frontend).
+WATCHED_SERVICES = [
+    "llama-server",
+    "llama-server-05b",
+    "cannvas-web",
+    "cannvas-kiosk-session",
+    "cloudflared",
+    "tailscaled",
+    "jetson-clocks",
+]
+
+_STATS_CACHE = {"ts": 0.0, "data": None}
+_LLAMA_CACHE = {"ts": 0.0, "healthy": False, "models": []}
+_STATS_LOCK = __import__("threading").Lock()
+
+
+def _read_int(path, default=None):
+    # type: (str, object) -> object
+    try:
+        with open(path) as handle:
+            return int(handle.read().strip())
+    except (IOError, OSError, ValueError):
+        return default
+
+
+def _cpu_cores():
+    cores = []
+    online = _read_int("/sys/devices/system/cpu/online")
+    for index in range(8):
+        base = "/sys/devices/system/cpu/cpu%d" % index
+        if not os.path.isdir(base):
+            continue
+        cur_path = os.path.join(base, "cpufreq/scaling_cur_freq")
+        cur = _read_int(cur_path)
+        if cur is None:
+            continue
+        online_str = _read_int("/sys/devices/system/cpu/cpu%d/online" % index)
+        # cpu0 has no online file; /sys/devices/system/cpu/online lists the rest.
+        is_online = True if online_str is None else bool(online_str)
+        if online is not None and index > 0:
+            is_online = index in _parse_cpu_ranges(online)
+        cores.append({
+            "index": index,
+            "online": is_online,
+            "mhz": round(cur / 1000.0, 0),
+        })
+    return cores
+
+
+def _parse_cpu_ranges(value):
+    # type: (int) -> set
+    return set(range(value + 1)) if value == 0 else set()
+
+
+def _parse_tegrastats_cpu(line):
+    # type: (str) -> list
+    """Parse per-core usage like [25%@2035,off,off,19%@2035,...] from tegrastats."""
+    match = re.search(r"CPU \[([^\]]+)\]", line)
+    if not match:
+        return []
+    cores = []
+    for item in match.group(1).split(","):
+        item = item.strip()
+        if item == "off":
+            cores.append({"usage": None, "mhz": None, "online": False})
+        elif "@" in item and "%" in item:
+            usage = item.split("@")[0].rstrip("%")
+            mhz = item.split("@")[1]
+            try:
+                cores.append({
+                    "usage": float(usage) if usage else None,
+                    "mhz": float(mhz) if mhz else None,
+                    "online": True,
+                })
+            except ValueError:
+                cores.append({"usage": None, "mhz": None, "online": True})
+        else:
+            cores.append({"usage": None, "mhz": None, "online": True})
+    return cores
+
+
+def _parse_tegrastats_temps(line):
+    # type: (str) -> dict
+    """Extract GPU/CPU/board temperature entries like GPU@43C."""
+    temps = {}
+    for match in re.finditer(r"([A-Za-z_0-9]+)@(-?\d+(?:\.\d+)?)C", line):
+        temps[match.group(1)] = float(match.group(2))
+    return temps
+
+
+def _parse_tegrastats_gpu(line):
+    # type: (str) -> dict
+    match = re.search(r"GR3D_FREQ (\d+)%", line)
+    return {"usage": float(match.group(1)) if match else None}
+
+
+def _memory():
+    try:
+        with open("/proc/meminfo") as handle:
+            info = dict(
+                (parts[0].rstrip(":"), int(parts[1]))
+                for parts in (line.split() for line in handle)
+                if len(parts) >= 2
+            )
+    except (IOError, OSError):
+        return None
+    total = info.get("MemTotal", 0) // 1024
+    available = info.get("MemAvailable", 0) // 1024
+    return {
+        "totalMb": total,
+        "usedMb": max(total - available, 0),
+        "availableMb": available,
+    }
+
+
+def _disk():
+    try:
+        stat = os.statvfs("/")
+    except (IOError, OSError):
+        return None
+    total = stat.f_blocks * stat.f_frsize
+    free = stat.f_bavail * stat.f_frsize
+    return {
+        "totalGb": round(total / 1024.0 ** 3, 1),
+        "freeGb": round(free / 1024.0 ** 3, 1),
+    }
+
+
+def _loadavg():
+    try:
+        with open("/proc/loadavg") as handle:
+            parts = handle.read().split()
+        return {"one": float(parts[0]), "five": float(parts[1]), "fifteen": float(parts[2])}
+    except (IOError, OSError, ValueError, IndexError):
+        return None
+
+
+def _uptime_seconds():
+    try:
+        with open("/proc/uptime") as handle:
+            return int(float(handle.read().split()[0]))
+    except (IOError, OSError, ValueError):
+        return None
+
+
+def _service_states():
+    # One systemctl call for all services instead of seven sequential ones.
+    states = {}
+    try:
+        proc = subprocess.Popen(
+            ["systemctl", "is-active"] + list(WATCHED_SERVICES),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        output = proc.communicate(timeout=3)[0].decode("utf-8", "replace").split()
+        for name, state in zip(WATCHED_SERVICES, output):
+            states[name] = state == "active"
+    except Exception:
+        pass
+    for name in WATCHED_SERVICES:
+        states.setdefault(name, False)
+    return states
+
+
+def _llama_status():
+    """Read the local llama-server health and model list (loopback only)."""
+    now = time.time()
+    if now - _LLAMA_CACHE["ts"] < LLAMA_CACHE_SECONDS:
+        return {"healthy": _LLAMA_CACHE["healthy"], "models": _LLAMA_CACHE["models"]}
+    try:
+        import urllib.request
+        with urllib.request.urlopen(
+            "http://127.0.0.1:%d/health" % LLAMA_PORT, timeout=2
+        ) as response:
+            health = json.loads(response.read().decode("utf-8") or "{}")
+        with urllib.request.urlopen(
+            "http://127.0.0.1:%d/v1/models" % LLAMA_PORT, timeout=2
+        ) as response:
+            models = json.loads(response.read().decode("utf-8") or "{}")
+        loaded = [
+            {
+                "id": item.get("id"),
+                "params": item.get("meta", {}).get("n_params"),
+                "ctxTrain": item.get("meta", {}).get("n_ctx_train"),
+            }
+            for item in models.get("data", [])
+            if isinstance(item, dict)
+        ]
+        _LLAMA_CACHE["ts"] = now
+        _LLAMA_CACHE["healthy"] = health.get("status") == "ok"
+        _LLAMA_CACHE["models"] = loaded
+        return {"healthy": _LLAMA_CACHE["healthy"], "models": loaded}
+    except Exception:
+        _LLAMA_CACHE["ts"] = now
+        _LLAMA_CACHE["healthy"] = False
+        _LLAMA_CACHE["models"] = []
+        return {"healthy": False, "models": []}
+
+
+def _tegrastats():
+    try:
+        # No --interval: tegrastats prints the first line immediately.
+        proc = subprocess.Popen(
+            ["tegrastats"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+        )
+        line = proc.stdout.readline().decode("utf-8", "replace").strip()
+        proc.kill()
+        proc.wait()
+        if not line:
+            return {}
+        stats = {}
+        stats["cpu"] = _parse_tegrastats_cpu(line)
+        stats["temps"] = _parse_tegrastats_temps(line)
+        stats["gpu"] = _parse_tegrastats_gpu(line)
+        return stats
+    except Exception:
+        return {}
+
+
+def collect_stats():
+    # type: () -> dict
+    now = time.time()
+    with _STATS_LOCK:
+        if _STATS_CACHE["data"] is not None and now - _STATS_CACHE["ts"] < STATS_CACHE_SECONDS:
+            return _STATS_CACHE["data"]
+        data = {
+            "ts": int(now * 1000),
+            "cores": _cpu_cores(),
+            "memory": _memory(),
+            "disk": _disk(),
+            "load": _loadavg(),
+            "uptime": _uptime_seconds(),
+            "services": _service_states(),
+            "llama": _llama_status(),
+        }
+        tegra = _tegrastats()
+        data["cpuUsage"] = tegra.get("cpu", [])
+        data["temps"] = tegra.get("temps", {})
+        data["gpu"] = tegra.get("gpu", {})
+        _STATS_CACHE["ts"] = now
+        _STATS_CACHE["data"] = data
+        return data
+
+
+class CannvasHandler(SimpleHTTPRequestHandler):
+    """Serve files from WEB_ROOT and add SPA fallback for client-side routing."""
+
+    def __init__(self, *args, **kwargs):
+        # Python 3.6's SimpleHTTPRequestHandler doesn't accept directory= kwarg.
+        # We'll handle serving from WEB_ROOT by chdir'ing before serving.
+        super(CannvasHandler, self).__init__(*args, **kwargs)
+
+    def send_json(self, status, value):
+        # type: (int, object) -> None
+        body = json.dumps(value).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        # SPA fallback: if the path doesn't match a real file, serve index.html
+        # so React Router can handle it. Directories (e.g. /videos/) are left
+        # to SimpleHTTPRequestHandler so its directory listing stays intact.
+        path = self.path.split("?")[0].split("#")[0]
+
+        if path == "/api/system/stats":
+            self.send_json(200, collect_stats())
+            return
+
+        file_path = path.lstrip("/")
+        is_dir = os.path.isdir(file_path)
+        if path != "/" and not os.path.isfile(file_path) and not is_dir and not path.startswith("/apps/"):
+            self.path = "/index.html"
+        super(CannvasHandler, self).do_GET()
+
+    def log_message(self, fmt, *args):
+        print("cannvas-server: %s" % (fmt % args), file=sys.stdout, flush=True)
+
+
+class ThreadingHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
+    """ThreadingHTTPServer backport for Python 3.6 (ThreadingHTTPServer added in 3.7)."""
+    daemon_threads = True
+
+
+def main():
+    if not os.path.isdir(WEB_ROOT):
+        print("ERROR: Web root not found: %s" % WEB_ROOT, file=sys.stderr)
+        sys.exit(1)
+
+    # Python 3.6's SimpleHTTPRequestHandler serves from cwd, not a directory= param.
+    os.chdir(WEB_ROOT)
+
+    server = ThreadingHTTPServer(("127.0.0.1", PORT), CannvasHandler)
+    print("Cannvas server on 127.0.0.1:%d serving %s" % (PORT, WEB_ROOT), flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nShutting down...", file=sys.stdout, flush=True)
+        server.shutdown()
+
+
+if __name__ == "__main__":
+    main()
