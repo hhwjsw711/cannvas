@@ -8,7 +8,7 @@ import { addCalendarDays, calendarDateKey, calendarEventTime, eventsForDate } fr
 const VIDEO_ROOT = "/videos/";
 const VIDEO_CACHE_KEY = "cannvas-video-list-v3";
 const VIDEO_PATTERN = /<a href="([^"]+)"/g;
-const YR_METEOGRAM = "https://www.yr.no/en/content/2-2075265/meteogram.svg";
+const YR_METEOGRAM = "https://www.yr.no/en/content/2-1803245/meteogram.svg";
 
 async function crawlVideos(root = VIDEO_ROOT, depth = 0, visited = new Set<string>()): Promise<string[]> {
   if (depth > 10 || visited.has(root)) return [];
@@ -113,8 +113,8 @@ export function DisplayApp({
       </div>
 
       <div className="display-content">
-        <p className="display-date">{now.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</p>
-        <div className="display-time">{now.toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+        <p className="display-date">{now.toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long" })}</p>
+        <div className="display-time">{now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
       </div>
 
       <aside
@@ -152,7 +152,7 @@ export function DisplayApp({
           <div className="calendar-home-list upcoming">
             {upcomingEvents.map(({ event, date, key }) => (
               <article key={key}>
-                <span className="calendar-home-day">{date.toLocaleDateString("en-AU", { weekday: "short", day: "numeric" })}</span>
+                <span className="calendar-home-day">{date.toLocaleDateString("zh-CN", { weekday: "short", day: "numeric" })}</span>
                 <strong>{event.title}</strong>
                 <small><Clock3 /> {calendarEventTime(event)}</small>
               </article>
@@ -169,12 +169,12 @@ export function DisplayApp({
         <button
           type="button"
           className="weather-panel yr-weather-panel"
-          aria-label="Open detailed Busselton weather"
+          aria-label="打开丽水详细天气"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={onOpenWeather}
         >
           <span className="yr-weather-frame">
-            <img src={`${YR_METEOGRAM}?bust=${weatherVersion}`} alt="Busselton weather forecast from Yr" />
+            <img src={`${YR_METEOGRAM}?bust=${weatherVersion}`} alt="丽水天气预报（Yr）" />
           </span>
         </button>
         <aside className="weather-panel news-panel">

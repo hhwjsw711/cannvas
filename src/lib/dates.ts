@@ -24,14 +24,14 @@ export function startOfWeek(date: Date): Date {
 }
 
 export function money(cents: number): string {
-  return new Intl.NumberFormat("en-AU", {
+  return new Intl.NumberFormat("zh-CN", {
     style: "currency",
-    currency: "AUD",
+    currency: "CNY",
   }).format(cents / 100);
 }
 
 export function longDate(value: string): string {
-  return fromDateKey(value).toLocaleDateString("en-AU", {
+  return fromDateKey(value).toLocaleDateString("zh-CN", {
     weekday: "long",
     day: "numeric",
     month: "long",

@@ -1,4 +1,4 @@
-import { CalendarDays, Check, ChevronLeft, ChevronRight, HeartPulse, History, RotateCcw, ShieldCheck, X } from "lucide-react";
+﻿import { CalendarDays, Check, ChevronLeft, ChevronRight, HeartPulse, History, RotateCcw, ShieldCheck, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import type { TabletId, TabletSchedule } from "../data/types";
@@ -16,7 +16,7 @@ function fromDateKey(value: string) {
 }
 
 function formatDate(value: string) {
-  return fromDateKey(value).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
+  return fromDateKey(value).toLocaleDateString("zh-CN", { weekday: "short", day: "numeric", month: "long", year: "numeric" });
 }
 
 function dateKey(value: Date) {
@@ -172,7 +172,7 @@ export function SammyTabletTickerApp() {
 
             <div className="tablet-picker-month">
               <button onClick={() => setPickerMonth(new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() - 1, 1))} aria-label="Previous month"><ChevronLeft /></button>
-              <strong>{pickerMonth.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}</strong>
+              <strong>{pickerMonth.toLocaleDateString("zh-CN", { month: "long", year: "numeric" })}</strong>
               <button onClick={() => setPickerMonth(new Date(pickerMonth.getFullYear(), pickerMonth.getMonth() + 1, 1))} aria-label="Next month"><ChevronRight /></button>
             </div>
 
@@ -190,7 +190,7 @@ export function SammyTabletTickerApp() {
                     className={`${outside ? "outside" : ""}${selected ? " selected" : ""}${today ? " today" : ""}`}
                     key={key}
                     onClick={() => void chooseDate(key)}
-                    aria-label={day.toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                    aria-label={day.toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
                     aria-pressed={selected}
                   >
                     {day.getDate()}

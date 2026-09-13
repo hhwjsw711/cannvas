@@ -1,4 +1,4 @@
-import { CalendarCheck2, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react";
+﻿import { CalendarCheck2, ChevronLeft, ChevronRight, Clock3, MapPin } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import { addCalendarDays, calendarDateKey, calendarEventTime, calendarMonthDays, eventsForDate } from "../lib/calendar";
@@ -37,7 +37,7 @@ export function CalendarApp() {
       <header className="calendar-header">
         <div>
           <p className="eyebrow">Our family schedule</p>
-          <h1>{month.toLocaleDateString("en-AU", { month: "long", year: "numeric" })}</h1>
+          <h1>{month.toLocaleDateString("zh-CN", { month: "long", year: "numeric" })}</h1>
           <p className="header-note">Events from Mike's personal Google Calendar.</p>
         </div>
         <div className="calendar-summary-card">
@@ -66,7 +66,7 @@ export function CalendarApp() {
         </div>
 
         <section className="calendar-agenda" aria-label={`Events for ${selectedDate}`}>
-          <header><div><span>Selected day</span><h2>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</h2></div><strong>{selectedEvents.length} {selectedEvents.length === 1 ? "event" : "events"}</strong></header>
+          <header><div><span>Selected day</span><h2>{new Date(`${selectedDate}T00:00:00`).toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long" })}</h2></div><strong>{selectedEvents.length} {selectedEvents.length === 1 ? "event" : "events"}</strong></header>
           <div className="calendar-agenda-list">
             {selectedEvents.map((event) => (
               <article key={event.id}>

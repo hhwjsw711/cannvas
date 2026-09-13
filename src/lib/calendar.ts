@@ -1,6 +1,6 @@
 import type { CalendarEvent } from "../data/types";
 
-export const CALENDAR_TIME_ZONE = "Australia/Perth";
+export const CALENDAR_TIME_ZONE = "Asia/Shanghai";
 
 export function calendarDateKey(value: Date | string) {
   const date = typeof value === "string" ? new Date(value) : value;
@@ -18,6 +18,7 @@ export function fromCalendarDateKey(key: string) {
   return new Date(`${key}T00:00:00+08:00`);
 }
 
+// 与丽水（东八区）保持一致；日历 key 是纯日期，+08:00 与 Asia/Shanghai 固定时区无 DST，等价。
 export function addCalendarDays(date: Date, days: number) {
   const value = new Date(date);
   value.setDate(value.getDate() + days);
@@ -51,9 +52,10 @@ export function eventsForDate(events: CalendarEvent[], key: string) {
 
 export function calendarEventTime(event: CalendarEvent) {
   if (event.allDay) return "All day";
-  return new Date(event.start).toLocaleTimeString("en-AU", {
+  return new Date(event.start).toLocaleTimeString("zh-CN", {
     timeZone: CALENDAR_TIME_ZONE,
     hour: "numeric",
     minute: "2-digit",
+    hour12: false,
   });
 }

@@ -1,4 +1,4 @@
-import { Check, ChevronLeft, ChevronRight, CircleDollarSign, CircleHelp, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+﻿import { Check, ChevronLeft, ChevronRight, CircleDollarSign, CircleHelp, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { ChoreCategoryPicker } from "../components/ChoreCategoryPicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
@@ -92,7 +92,7 @@ export function ChoresApp() {
           <div className="interest-payday-icon"><CircleDollarSign /></div>
           <div>
             <strong>Interest payday!</strong>
-            <span>Sunday {sunday.toLocaleDateString("en-AU", { day: "numeric", month: "long" })} is the last Sunday of the month.</span>
+            <span>Sunday {sunday.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })} is the last Sunday of the month.</span>
           </div>
           <div className="interest-payday-rate">
             <strong>10%</strong>
@@ -104,7 +104,7 @@ export function ChoresApp() {
       <div className="week-toolbar">
         <button className="icon-button" aria-label="Previous week" onClick={() => setWeekStart(addDays(weekStart, -7))}><ChevronLeft /></button>
         <button className="week-label" onClick={() => setWeekStart(startOfWeek(new Date()))}>
-          <strong>{isThisWeek ? "This week" : `Week of ${weekStart.toLocaleDateString("en-AU", { day: "numeric", month: "long" })}`}</strong>
+          <strong>{isThisWeek ? "This week" : `Week of ${weekStart.toLocaleDateString("zh-CN", { day: "numeric", month: "long" })}`}</strong>
           {!isThisWeek && <span>Tap to return to this week</span>}
         </button>
         <button className="icon-button" aria-label="Next week" onClick={() => setWeekStart(addDays(weekStart, 7))}><ChevronRight /></button>
@@ -115,7 +115,7 @@ export function ChoresApp() {
           <div className="chore-title-cell">My chores</div>
           {days.map((day) => (
             <div className={dateKey(day) === dateKey(new Date()) ? "day-heading today" : "day-heading"} key={dateKey(day)}>
-              <span>{day.toLocaleDateString("en-AU", { weekday: "short" })}</span>
+              <span>{day.toLocaleDateString("zh-CN", { weekday: "short" })}</span>
               <strong>{day.getDate()}</strong>
             </div>
           ))}
@@ -139,7 +139,7 @@ export function ChoresApp() {
                   className={checked ? "chore-check checked" : "chore-check"}
                   style={{ "--chore-color": chore.color } as React.CSSProperties}
                   onClick={() => void toggleCompletion(chore.id, dayKey)}
-                  aria-label={`${checked ? "Uncheck" : "Check"} ${chore.name} on ${day.toLocaleDateString("en-AU", { weekday: "long" })}`}
+                  aria-label={`${checked ? "Uncheck" : "Check"} ${chore.name} on ${day.toLocaleDateString("zh-CN", { weekday: "long" })}`}
                   aria-pressed={checked}
                 >
                   <span>{checked && <Check strokeWidth={4} />}</span>

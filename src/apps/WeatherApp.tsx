@@ -23,14 +23,14 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useMemo, useRef, useState, type ComponentType, type PointerEvent as ReactPointerEvent } from "react";
 
-const BUSSELTON = { latitude: -33.6516, longitude: 115.3470 };
+const LISHUI = { latitude: 28.4679, longitude: 119.9229 };
 const WEATHER_CACHE_KEY = "cannvas-weather-v1";
 const WEATHER_REFRESH_MS = 15 * 60 * 1000;
 const FORECAST_URL = new URL("https://api.open-meteo.com/v1/forecast");
 FORECAST_URL.search = new URLSearchParams({
-  latitude: String(BUSSELTON.latitude),
-  longitude: String(BUSSELTON.longitude),
-  timezone: "Australia/Perth",
+  latitude: String(LISHUI.latitude),
+  longitude: String(LISHUI.longitude),
+  timezone: "Asia/Shanghai",
   forecast_days: "10",
   current: [
     "temperature_2m",
@@ -151,12 +151,12 @@ function readWeatherCache(): WeatherForecast | null {
 
 function hourLabel(value: string, index: number) {
   if (index === 0) return "Now";
-  return new Date(value).toLocaleTimeString("en-AU", { hour: "numeric" });
+  return new Date(value).toLocaleTimeString("zh-CN", { hour: "numeric" });
 }
 
 function dayLabel(value: string, index: number) {
   if (index === 0) return "Today";
-  return new Date(`${value}T12:00:00`).toLocaleDateString("en-AU", { weekday: "short" });
+  return new Date(`${value}T12:00:00`).toLocaleDateString("zh-CN", { weekday: "short" });
 }
 
 function windDirection(degrees: number) {
@@ -179,7 +179,7 @@ function WeatherIcon({ code, className }: { code: number; className?: string }) 
 
 function radarTime(frame: RadarFrame | undefined) {
   if (!frame) return "";
-  return new Date(frame.time * 1000).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
+  return new Date(frame.time * 1000).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" });
 }
 
 function RadarScrubber({
@@ -299,20 +299,20 @@ function WeatherRadar() {
       attributionControl: true,
       minZoom: 6,
       maxZoom: 12,
-    }).setView([BUSSELTON.latitude, BUSSELTON.longitude], 8);
+    }).setView([LISHUI.latitude, LISHUI.longitude], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors",
       className: "weather-base-map",
       maxZoom: 19,
     }).addTo(map);
     L.control.zoom({ position: "topright" }).addTo(map);
-    L.circleMarker([BUSSELTON.latitude, BUSSELTON.longitude], {
+    L.circleMarker([LISHUI.latitude, LISHUI.longitude], {
       radius: 8,
       color: "#ffffff",
       weight: 3,
       fillColor: "#4a9eff",
       fillOpacity: 1,
-    }).bindTooltip("Busselton", { permanent: true, direction: "right", offset: [8, 0] }).addTo(map);
+    }).bindTooltip("丽水", { permanent: true, direction: "right", offset: [8, 0] }).addTo(map);
     mapRef.current = map;
     window.setTimeout(() => map.invalidateSize(), 0);
     return () => {
@@ -399,7 +399,7 @@ function WeatherRadar() {
         </div>
         <small>{hasForecastFrames ? "Observed and forecast" : "Observed, past 2 hours"}</small>
       </div>
-      <div className="weather-radar-map" ref={containerRef} aria-label="Rain radar map centred on Busselton">
+      <div className="weather-radar-map" ref={containerRef} aria-label="丽水降雨雷达图">
         {radarError && <div className="weather-radar-error">Radar is temporarily unavailable</div>}
         <div className="weather-radar-key"><i />Light <i />Heavy</div>
       </div>
@@ -461,7 +461,7 @@ export function WeatherApp() {
     return (
       <section className="weather-app weather-app-loading">
         <RefreshCw />
-        <strong>{error ? "Weather is temporarily unavailable" : "Loading Busselton weather"}</strong>
+        <strong>{error ? "天气暂时不可用" : "正在加载丽水天气"}</strong>
         {error && <button onClick={() => { setLoading(true); setRefreshVersion((value) => value + 1); }}>Try again</button>}
       </section>
     );
@@ -486,7 +486,7 @@ export function WeatherApp() {
   const rainSummary = nextRain
     ? `${round(nextRain.rainChance)}% chance of rain ${nextRain === hourly[0] ? "now" : `around ${hourLabel(nextRain.time, 1)}`}`
     : "No rain expected in the next 12 hours";
-  const updatedAt = new Date(forecast.current.time).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
+  const updatedAt = new Date(forecast.current.time).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" });
 
   return (
     <section className={`weather-app weather-code-${forecast.current.weather_code}`}>
@@ -494,7 +494,7 @@ export function WeatherApp() {
       <div className="weather-scroll">
         <header className="weather-hero">
           <div>
-            <p>Busselton</p>
+            <p>丽水</p>
             <div className="weather-current-temperature">{round(forecast.current.temperature_2m)}°</div>
             <strong>{condition.label}</strong>
             <span>Feels like {round(forecast.current.apparent_temperature)}° · H:{round(todayHigh)}° L:{round(todayLow)}°</span>
@@ -551,7 +551,7 @@ export function WeatherApp() {
           <article className="weather-card"><div><Sun /><span>UV index</span></div><strong>{round(forecast.hourly.uv_index[detailIndex])}</strong><p>{uvLabel(forecast.hourly.uv_index[detailIndex])}</p><i className="uv-scale" /></article>
           <article className="weather-card"><div><Eye /><span>Visibility</span></div><strong>{round(forecast.hourly.visibility[detailIndex] / 1000)} <small>km</small></strong><p>{forecast.hourly.visibility[detailIndex] >= 10000 ? "Clear view" : "Reduced visibility"}</p></article>
           <article className="weather-card"><div><Gauge /><span>Pressure</span></div><strong>{round(forecast.current.pressure_msl)} <small>hPa</small></strong><p>Sea-level pressure</p></article>
-          <article className="weather-card weather-sun-card"><div><Sunset /><span>Sunset</span></div><strong>{new Date(forecast.daily.sunset[0]).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}</strong><p><Sunrise /> Sunrise {new Date(forecast.daily.sunrise[0]).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" })}</p></article>
+          <article className="weather-card weather-sun-card"><div><Sunset /><span>Sunset</span></div><strong>{new Date(forecast.daily.sunset[0]).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" })}</strong><p><Sunrise /> Sunrise {new Date(forecast.daily.sunrise[0]).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" })}</p></article>
         </div>
 
         <footer className="weather-attribution">Forecast by Open-Meteo · Radar by RainViewer · Map by OpenStreetMap</footer>

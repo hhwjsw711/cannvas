@@ -1,4 +1,4 @@
-import {
+﻿import {
   ChevronLeft,
   ChevronRight,
   Circle,
@@ -254,7 +254,7 @@ export function WhiteboardApp() {
         <div className="date-strip" aria-label="Nearby whiteboards">
           {nearbyDates.map((day) => (
             <button key={day} className={day === selectedDate ? "date-chip selected" : "date-chip"} onClick={() => setSelectedDate(day)}>
-              <span>{fromDateKey(day).toLocaleDateString("en-AU", { weekday: "short" })}</span>
+              <span>{fromDateKey(day).toLocaleDateString("zh-CN", { weekday: "short" })}</span>
               <strong>{fromDateKey(day).getDate()}</strong>
               <i className={boardDates.includes(day) ? "has-drawing" : ""} />
             </button>
@@ -265,7 +265,7 @@ export function WhiteboardApp() {
         </button>
         <label className="date-picker">
           <span>Choose date</span>
-          <strong>{fromDateKey(selectedDate).toLocaleDateString("en-AU")}</strong>
+          <strong>{fromDateKey(selectedDate).toLocaleDateString("zh-CN")}</strong>
           <input aria-label="Choose date" type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
         </label>
           </div>

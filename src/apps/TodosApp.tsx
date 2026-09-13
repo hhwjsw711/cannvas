@@ -1,4 +1,4 @@
-import { CalendarDays, Check, Pencil, Plus } from "lucide-react";
+﻿import { CalendarDays, Check, Pencil, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import type { Todo, TodoAssignee, TodoPriority } from "../data/types";
@@ -13,7 +13,7 @@ const PRIORITY_ORDER: Record<TodoPriority, number> = { high: 0, medium: 1, low: 
 
 function friendlyDate(date: string) {
   const value = new Date(`${date}T00:00:00`);
-  return value.toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  return value.toLocaleDateString("zh-CN", { day: "numeric", month: "short" });
 }
 
 function sortTodos(left: Todo, right: Todo) {
