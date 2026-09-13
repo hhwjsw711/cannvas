@@ -104,8 +104,8 @@ const FILTERS: Array<{ id: ControlFilter; label: string }> = [
 ];
 
 const FAMILY = [
-  { id: "mike", name: "爸爸", avatar: "/avatars/dad.png", matches: ["mike", "cann"] },
-  { id: "kelsie", name: "妈妈", avatar: "/avatars/mum.png", matches: ["kelsie", "kels"] },
+  { id: "mike", name: "胡洪伟", avatar: "/avatars/dad.png", matches: ["mike", "cann"] },
+  { id: "kelsie", name: "梅宏杰", avatar: "/avatars/mum.png", matches: ["kelsie", "kels"] },
 ] as const;
 
 function familyMemberFor(person: HomeAssistantEntity) {
