@@ -214,8 +214,20 @@ credentials: LightDM logged `pi` in successfully, Labwc logged DRM permission
 errors and exited with status 1, then LightDM left the greeter active. The exact
 trigger for the display permission loss was not established. Recovery should
 not depend on that trigger: killing Chromium must restart its user service,
-and terminating Pi's Labwc must restore the desktop through the timer. A full
-reboot should start the desktop, browser, keyboard and timer without a login.
+and terminating Pi's Labwc must restore the desktop through the timer. A full reboot should start the desktop, browser, keyboard and timer without a login.
+
+### Jetson TX2 variant
+
+The live family display is currently a Jetson TX2 (landscape 1920x1080 TV),
+not the Raspberry Pi above. It runs the same Cannvas app through:
+
+- `cannvas-kiosk-session.service` — systemd X session (`startx`) launching
+  openbox + Chromium kiosk on HDMI.
+- `cannvas-web.service` — serves the production build at `http://127.0.0.1:4173`.
+
+Chinese input on the kiosk is provided by ibus-libpinyin. See the
+**TX2 deployment** section in `AGENTS.md` for the full configuration and the
+known restart pitfall.
 
 ## How the data is handled
 
