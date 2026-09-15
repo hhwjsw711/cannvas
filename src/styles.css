@@ -401,6 +401,19 @@ h1 { margin-bottom: 0; font: 700 clamp(2rem, 3.4vw, 3.3rem)/1.05 "Fraunces", ser
 .home-location-label { padding: 7px 11px; border: 0; border-radius: 11px; color: white; background: var(--ink); box-shadow: 0 4px 12px rgba(0,0,0,.18); font-size: .72rem; font-weight: 900; }
 .home-location-label::before { border-right-color: var(--ink); }
 .home-location-map .leaflet-control-attribution { padding: 2px 6px; color: #676b66; background: rgba(255,255,255,.8); font-size: 8px; }
+
+/* Family location app */
+.family-location-app { height: 100%; padding: 34px 34px 10px; display: flex; flex-direction: column; overflow: hidden; background: radial-gradient(circle at 92% 6%, rgba(94,198,165,.22), transparent 27%), radial-gradient(circle at 5% 75%, rgba(107,167,255,.18), transparent 31%), var(--cream); }
+.family-location-map-wrap { margin-bottom: 20px; }
+.family-location-map-wrap .home-location-map { height: 430px; }
+.family-location-note { margin-top: 14px; text-align: center; }
+.display-family-panel { padding: 18px 22px; border-radius: 16px; cursor: pointer; display: flex; align-items: center; gap: 12px; text-align: left; color: white; }
+.display-family-panel:active { transform: scale(.99); }
+.display-family-icon { width: 44px; height: 44px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 13px; color: var(--ink); background: #d7d5d0; }
+.display-family-icon svg { width: 24px; }
+.display-family-copy { display: flex; flex-direction: column; gap: 2px; }
+.display-family-copy strong { font: 700 1.15rem "Fraunces", serif; }
+.display-family-copy span { color: rgba(255,255,255,.75); font-size: .75rem; font-weight: 700; }
 .home-network-summary { margin-bottom: 10px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .home-network-summary article { min-height: 78px; padding: 12px 14px; display: flex; align-items: center; gap: 11px; border: 1px solid #dce4df; border-radius: 18px; background: #f4f8f6; }
 .home-network-summary article > span { width: 40px; height: 40px; display: grid; place-items: center; flex: 0 0 auto; border-radius: 13px; color: #3478d4; background: #e3edfb; }

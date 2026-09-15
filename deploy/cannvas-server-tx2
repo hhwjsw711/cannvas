@@ -26,6 +26,130 @@ LLAMA_PORT = int(os.environ.get("CANNVAS_LLAMA_PORT", "8080"))
 STATS_CACHE_SECONDS = 1.5
 LLAMA_CACHE_SECONDS = 15.0
 
+# --- OwnTracks family location tracking ---
+# Each family member's OwnTracks device is identified by its "tid" (two
+# letters). Unknown tids are rejected. Coordinates are persisted as JSON in
+# the state directory so a server restart keeps the last known positions.
+LOCATION_FILE_PATH = os.environ.get("CANNVAS_LOCATIONS_FILE", "/var/lib/cannvas/locations.json")
+LOCATION_TTL_SECONDS = int(os.environ.get("CANNVAS_LOCATION_TTL", "86400"))  # 24h stale cutoff
+
+# tid -> member info (tid comes from OwnTracks device settings)
+FAMILY_TRACKERS = {
+    "hh": {"id": "mike", "name": "胡洪伟"},
+    "mh": {"id": "kelsie", "name": "梅宏杰"},
+}
+
+_LOCATION_LOCK = __import__("threading").Lock()
+_LOCATIONS = {}  # member_id -> {latitude, longitude, accuracy, ts, name}
+
+
+def load_locations():
+    """Load persisted locations from disk (if any)."""
+    try:
+        with open(LOCATION_FILE_PATH) as handle:
+            data = json.load(handle)
+        if isinstance(data, dict):
+            return data
+    except (IOError, OSError, ValueError):
+        pass
+    return {}
+
+
+def save_locations():
+    """Atomically persist locations to disk."""
+    try:
+        directory = os.path.dirname(LOCATION_FILE_PATH)
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        tmp_path = LOCATION_FILE_PATH + ".tmp"
+        with open(tmp_path, "w") as handle:
+            json.dump(_LOCATIONS, handle)
+        os.replace(tmp_path, LOCATION_FILE_PATH)
+    except (IOError, OSError):
+        pass
+
+
+def _public_locations():
+    """Return the latest non-stale location per member, oldest first."""
+    now = time.time()
+    with _LOCATION_LOCK:
+        stale_cutoff = now - LOCATION_TTL_SECONDS
+        result = []
+        for member_id, entry in sorted(_LOCATIONS.items()):
+            if entry.get("ts", 0) < stale_cutoff:
+                continue
+            result.append({
+                "id": member_id,
+                "name": entry.get("name", member_id),
+                "latitude": entry.get("latitude"),
+                "longitude": entry.get("longitude"),
+                "accuracy": entry.get("accuracy"),
+                "lastSeen": entry.get("ts"),
+            })
+        return result
+
+
+def record_location(tid, latitude, longitude, accuracy=None):
+    """Store a reported location for a known tracker tid (case-insensitive)."""
+    member = FAMILY_TRACKERS.get(tid.lower())
+    if not member:
+        return False
+    try:
+        lat = float(latitude)
+        lon = float(longitude)
+    except (TypeError, ValueError):
+        return False
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        return False
+    with _LOCATION_LOCK:
+        _LOCATIONS[member["id"]] = {
+            "latitude": lat,
+            "longitude": lon,
+            "accuracy": accuracy if accuracy is None else float(accuracy),
+            "ts": time.time(),
+            "name": member["name"],
+        }
+    save_locations()
+    return True
+
+
+def _handle_single_payload(body):
+    """Process one OwnTracks payload dict; return (status, message)."""
+    if not isinstance(body, dict):
+        return 400, "Expected a JSON object"
+    payload_type = body.get("_type")
+    tid = body.get("tid")
+    # Debug: log the raw tid/type so we can see what the phone sends.
+    print("owntracks: type=%r tid=%r lat=%r lon=%r" % (
+        payload_type, tid, body.get("lat"), body.get("lon")), flush=True)
+    if payload_type not in ("location", "transition"):
+        return 200, "ignored"  # OwnTracks sends other types; do not log as errors
+    if not tid or tid.lower() not in FAMILY_TRACKERS:
+        return 403, "Unknown tracker"
+    lat = body.get("lat")
+    lon = body.get("lon")
+    if lat is None or lon is None:
+        return 400, "Missing coordinates"
+    record_location(tid, lat, lon, body.get("acc"))
+    return 200, "ok"
+
+
+def handle_owntracks_payload(body):
+    """Process an OwnTracks JSON payload; return (status, message).
+
+    OwnTracks HTTP mode sends either a single JSON object or a JSON array
+    of objects (batch). Both are accepted here.
+    """
+    if isinstance(body, list):
+        if not body:
+            return 400, "Empty array"
+        for item in body:
+            status, message = _handle_single_payload(item)
+            if status != 200:
+                return status, message
+        return 200, "ok"
+    return _handle_single_payload(body)
+
 # Services shown on the compute dashboard (labels assigned by the frontend).
 WATCHED_SERVICES = [
     "llama-server",
@@ -300,11 +424,43 @@ class CannvasHandler(SimpleHTTPRequestHandler):
             self.send_json(200, collect_stats())
             return
 
+        if path == "/api/locations":
+            self.send_json(200, {"tracked": True, "locations": _public_locations()})
+            return
+
         file_path = path.lstrip("/")
         is_dir = os.path.isdir(file_path)
         if path != "/" and not os.path.isfile(file_path) and not is_dir and not path.startswith("/apps/"):
             self.path = "/index.html"
         super(CannvasHandler, self).do_GET()
+
+    def do_POST(self):
+        # OwnTracks (or any compatible tracker) reports a location update.
+        path = self.path.split("?")[0].split("#")[0]
+        if path != "/api/owntracks":
+            self.send_json(404, {"error": "Not found"})
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            self.send_json(400, {"error": "Invalid request length"})
+            return
+        if length <= 0 or length > 16_000:
+            self.send_json(413, {"error": "Request body too large"})
+            return
+
+        try:
+            body = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, UnicodeDecodeError):
+            self.send_json(400, {"error": "Invalid JSON"})
+            return
+
+        status, message = handle_owntracks_payload(body)
+        if status == 200:
+            self.send_json(200, {"status": message})
+        else:
+            self.send_json(status, {"error": message})
 
     def log_message(self, fmt, *args):
         print("cannvas-server: %s" % (fmt % args), file=sys.stdout, flush=True)
@@ -319,6 +475,9 @@ def main():
     if not os.path.isdir(WEB_ROOT):
         print("ERROR: Web root not found: %s" % WEB_ROOT, file=sys.stderr)
         sys.exit(1)
+
+    # Restore the last known family locations across server restarts.
+    _LOCATIONS.update(load_locations())
 
     # Python 3.6's SimpleHTTPRequestHandler serves from cwd, not a directory= param.
     os.chdir(WEB_ROOT)

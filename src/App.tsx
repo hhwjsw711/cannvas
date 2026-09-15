@@ -8,6 +8,7 @@ import {
   Keyboard,
   LayoutDashboard,
   ListTodo,
+  MapPinned,
   PackageSearch,
   PencilLine,
   CloudSun,
@@ -16,6 +17,7 @@ import { CalendarApp } from "./apps/CalendarApp";
 import { ChoresApp } from "./apps/ChoresApp";
 import { ComputeApp } from "./apps/ComputeApp";
 import { DisplayApp } from "./apps/DisplayApp";
+import { FamilyLocationApp } from "./apps/FamilyLocationApp";
 import { KioskInventoryApp } from "./apps/KioskInventoryApp";
 import { SammyTabletTickerApp } from "./apps/SammyTabletTickerApp";
 import { TodosApp } from "./apps/TodosApp";
@@ -31,6 +33,7 @@ type AppId =
   | "calendar"
   | "weather"
   | "compute"
+  | "locations"
   | "sammy-tablets"
   | "inventory"
   | "display";
@@ -42,6 +45,7 @@ const primaryApps = [
   { id: "calendar" as const, label: "日历", icon: CalendarDays },
   { id: "weather" as const, label: "天气", icon: CloudSun },
   { id: "compute" as const, label: "算力", icon: Cpu },
+  { id: "locations" as const, label: "位置", icon: MapPinned },
 ];
 
 const moreApps = [
@@ -141,9 +145,10 @@ export function App() {
         {isReady && activeApp === "calendar" && <CalendarApp />}
         {isReady && activeApp === "weather" && <WeatherApp />}
         {isReady && activeApp === "compute" && <ComputeApp />}
+        {isReady && activeApp === "locations" && <FamilyLocationApp />}
         {isReady && activeApp === "sammy-tablets" && <SammyTabletTickerApp />}
         {isReady && activeApp === "inventory" && <KioskInventoryApp />}
-        {isReady && activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} />}
+        {isReady && activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} onOpenLocations={() => openApp("locations")} />}
       </div>
 
       {keyboardVisible && activeApp !== "display" && (

@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock3, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Snowflake, Sun, Volume2, VolumeX } from "lucide-react";
+import { CheckCircle2, Clock3, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, MapPinned, Snowflake, Sun, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
 import { useCannvasData } from "../data/DataProvider";
 import { addCalendarDays, calendarDateKey, calendarEventTime, eventsForDate } from "../lib/calendar";
@@ -54,6 +54,39 @@ function readWeatherCache(): DisplayWeather | null {
     const cached = JSON.parse(localStorage.getItem(WEATHER_CACHE_KEY) ?? "null") as DisplayWeather | null;
     return cached?.current && cached?.hourly && cached?.daily ? cached : null;
   } catch { return null; }
+}
+
+type FamilyPresence = {
+  on: string[]; // names with a fresh location
+  count: number;
+};
+
+const FAMILY_LOCATION_REFRESH_MS = 30_000;
+const STALE_AFTER_SECONDS = 15 * 60; // 15 min without an update counts as "unknown"
+
+function useFamilyPresence(): FamilyPresence | null {
+  const [presence, setPresence] = useState<FamilyPresence | null>(null);
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/locations", { cache: "no-store" });
+        if (!res.ok) throw new Error(`Locations ${res.status}`);
+        const body = await res.json() as { locations?: Array<{ id: string; name: string; lastSeen?: number }> };
+        if (!active) return;
+        const nowSeconds = Date.now() / 1000;
+        const fresh = (body.locations ?? []).filter((location) => (location.lastSeen ?? 0) > nowSeconds - STALE_AFTER_SECONDS);
+        setPresence({
+          on: fresh.map((location) => location.name),
+          count: fresh.length,
+        });
+      } catch { /* keep last good reading */ }
+    };
+    void load();
+    const timer = window.setInterval(load, FAMILY_LOCATION_REFRESH_MS);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
+  return presence;
 }
 
 function useDisplayWeather() {
@@ -134,13 +167,16 @@ export function DisplayApp({
   onActivity,
   onOpenCalendar,
   onOpenWeather,
+  onOpenLocations,
 }: {
   displaySession: number;
   onActivity: () => void;
   onOpenCalendar: () => void;
   onOpenWeather: () => void;
+  onOpenLocations: () => void;
 }) {
   const { calendarEvents, calendarStatus, newsHeadlines } = useCannvasData();
+  const familyPresence = useFamilyPresence();
   const [now, setNow] = useState(new Date());
   const [videoAudio, setVideoAudio] = useState(() => ({ session: displaySession, muted: true }));
   const [calendarCanExpand, setCalendarCanExpand] = useState(false);
@@ -273,6 +309,19 @@ export function DisplayApp({
           onClick={onOpenWeather}
         >
           <WeatherWidget />
+        </button>
+        <button
+          type="button"
+          className="weather-panel display-family-panel"
+          aria-label="打开家人位置"
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={onOpenLocations}
+        >
+          <div className="display-family-icon"><MapPinned /></div>
+          <div className="display-family-copy">
+            <strong>{familyPresence && familyPresence.count > 0 ? `${familyPresence.on.join("、")} 已定位` : "家人位置"}</strong>
+            <span>{familyPresence ? `${familyPresence.count} / 2 人在线` : "等待定位…"}</span>
+          </div>
         </button>
         <aside className="weather-panel news-panel">
           <div className="news-header"><span>新闻</span></div>
