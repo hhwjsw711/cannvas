@@ -28,12 +28,14 @@ export function FamilyLocationApp() {
   const refresh = useCallback(async () => {
     try {
       const response = await fetch("/api/locations", { cache: "no-store" });
+      if (!response.ok) throw new Error("位置服务不可用");
       const body = await response.json() as LocationResponse & { error?: string };
-      if (!response.ok) throw new Error(body.error || "位置服务不可用");
+      if (body.error) throw new Error(body.error);
       setLocations(body.locations ?? []);
       setError("");
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "无法获取家人位置");
+    } catch {
+      // 生产站点（cannvas.isllm.com）没有本机位置 API，保持空状态即可。
+      setError("位置服务未在家中运行");
     } finally {
       setLoading(false);
     }
