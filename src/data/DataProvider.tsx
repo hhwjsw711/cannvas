@@ -1,7 +1,10 @@
 import {
+  Component,
   createContext,
   type Dispatch,
+  type ErrorInfo,
   type PropsWithChildren,
+  type ReactNode,
   type SetStateAction,
   useCallback,
   useContext,
@@ -627,10 +630,31 @@ export function DataProvider({ children }: PropsWithChildren) {
 
   if (!client) return <LocalDataProvider>{children}</LocalDataProvider>;
   return (
-    <ConvexAuthProvider client={client} storageNamespace="cannvas-kiosk">
-      <LocalFirstBackupProvider>{children}</LocalFirstBackupProvider>
-    </ConvexAuthProvider>
+    <ConvexErrorBoundary fallback={<LocalDataProvider>{children}</LocalDataProvider>}>
+      <ConvexAuthProvider client={client} storageNamespace="cannvas-kiosk">
+        <LocalFirstBackupProvider>{children}</LocalFirstBackupProvider>
+      </ConvexAuthProvider>
+    </ConvexErrorBoundary>
   );
+}
+
+class ConvexErrorBoundary extends Component<
+  PropsWithChildren<{ fallback: ReactNode }>,
+  { hasError: boolean }
+> {
+  constructor(props: PropsWithChildren<{ fallback: ReactNode }>) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("Convex query failed, falling back to local mode:", error, info);
+  }
+  render() {
+    return this.state.hasError ? this.props.fallback : this.props.children;
+  }
 }
 
 export function useCannvasData(): CannvasData {
