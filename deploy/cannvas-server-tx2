@@ -399,10 +399,22 @@ def collect_stats():
 class CannvasHandler(SimpleHTTPRequestHandler):
     """Serve files from WEB_ROOT and add SPA fallback for client-side routing."""
 
+    # HTTP/1.1 is required for Chromium's ES module loader to work correctly.
+    # Python 3.6's SimpleHTTPRequestHandler defaults to HTTP/1.0.
+    protocol_version = "HTTP/1.1"
+
     def __init__(self, *args, **kwargs):
         # Python 3.6's SimpleHTTPRequestHandler doesn't accept directory= kwarg.
         # We'll handle serving from WEB_ROOT by chdir'ing before serving.
         super(CannvasHandler, self).__init__(*args, **kwargs)
+
+    def end_headers(self):
+        # CORS + cache headers so Chromium's ES module loader accepts responses.
+        self.send_header("Access-Control-Allow-Origin", "*")
+        path = self.path.split("?")[0].split("#")[0]
+        if path == "/" or path.endswith(".html"):
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        super(CannvasHandler, self).end_headers()
 
     def send_json(self, status, value):
         # type: (int, object) -> None
@@ -469,6 +481,8 @@ class CannvasHandler(SimpleHTTPRequestHandler):
 class ThreadingHTTPServer(socketserver.ThreadingMixIn, HTTPServer):
     """ThreadingHTTPServer backport for Python 3.6 (ThreadingHTTPServer added in 3.7)."""
     daemon_threads = True
+    # HTTP/1.1 for Chromium ES module compatibility.
+    protocol_version = "HTTP/1.1"
 
 
 def main():
