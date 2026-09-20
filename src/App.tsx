@@ -11,6 +11,7 @@ import {
   MapPinned,
   PackageSearch,
   PencilLine,
+  Power,
   CloudSun,
 } from "lucide-react";
 import { CalendarApp } from "./apps/CalendarApp";
@@ -23,7 +24,9 @@ import { SammyTabletTickerApp } from "./apps/SammyTabletTickerApp";
 import { TodosApp } from "./apps/TodosApp";
 import { WhiteboardApp } from "./apps/WhiteboardApp";
 import { WeatherApp } from "./apps/WeatherApp";
+import { ConfirmDialog } from "./components/ConfirmDialog";
 import { useCannvasData } from "./data/DataProvider";
+import { POWER_OFF_RECOVERY_MESSAGE, schedulePowerOffRecovery } from "./lib/actionTiming";
 import { dismissNativeKeyboard, installNativeKeyboard } from "./lib/nativeKeyboard";
 
 type AppId =
@@ -60,6 +63,9 @@ export function App() {
   const [activeApp, setActiveApp] = useState<AppId>("whiteboard");
   const [displaySession, setDisplaySession] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
+  const [powerOffOpen, setPowerOffOpen] = useState(false);
+  const [powerOffPending, setPowerOffPending] = useState(false);
+  const [powerOffError, setPowerOffError] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const moreWrap = useRef<HTMLDivElement>(null);
   const lastInteractiveApp = useRef<AppId>("whiteboard");
@@ -129,6 +135,35 @@ export function App() {
     if (activeApp === "display") openApp(lastInteractiveApp.current);
   };
 
+  const requestPowerOff = () => {
+    setMoreOpen(false);
+    setPowerOffError("");
+    setPowerOffOpen(true);
+  };
+
+  const powerOff = async () => {
+    setPowerOffPending(true);
+    setPowerOffError("");
+    const recoveryTimer = schedulePowerOffRecovery({
+      recover: () => {
+        setPowerOffPending(false);
+        setPowerOffError(POWER_OFF_RECOVERY_MESSAGE);
+      },
+    });
+    try {
+      const response = await fetch("/api/system/poweroff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "poweroff" }),
+      });
+      if (!response.ok) throw new Error("Cannvas did not accept the power-off request");
+    } catch (error) {
+      window.clearTimeout(recoveryTimer);
+      setPowerOffPending(false);
+      setPowerOffError(error instanceof Error ? error.message : "Cannvas could not power off");
+    }
+  };
+
   const moreActive = moreApps.some(({ id }) => id === activeApp);
 
   return (
@@ -184,6 +219,10 @@ export function App() {
                     <span><strong>{label}</strong><small>{description}</small></span>
                   </button>
                 ))}
+                <button className="more-power-button" onClick={requestPowerOff}>
+                  <span className="more-app-icon"><Power /></span>
+                  <span><strong>Turn off Cannvas</strong><small>Shut down the screen safely</small></span>
+                </button>
               </div>
             )}
             <button
@@ -207,6 +246,22 @@ export function App() {
           </button>
         </nav>
       )}
+
+      <ConfirmDialog
+        open={powerOffOpen}
+        title="Turn off Cannvas?"
+        confirmLabel={powerOffPending ? "Turning off…" : "Turn off"}
+        confirmDisabled={powerOffPending}
+        onCancel={() => {
+          if (powerOffPending) return;
+          setPowerOffOpen(false);
+          setPowerOffError("");
+        }}
+        onConfirm={() => void powerOff()}
+      >
+        <p>This safely shuts down the Cannvas computer. You will need to turn its power back on to start it again.</p>
+        {powerOffError && <p className="dialog-error">{powerOffError}</p>}
+      </ConfirmDialog>
     </main>
   );
 }

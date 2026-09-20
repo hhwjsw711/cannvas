@@ -13,7 +13,9 @@ import {
   Power,
   RefreshCw,
   Settings,
+  Sparkles,
   Thermometer,
+  Tv,
   Upload,
   UserRound,
   Wifi,
@@ -22,6 +24,7 @@ import {
 import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { scheduleHomeActionRefresh } from "../lib/actionTiming";
 
 type HomeAssistantAttributes = {
   device_class?: string;
@@ -76,9 +79,9 @@ type NetworkStatus = {
 };
 
 type HomeAssistantAction = "turn_on" | "turn_off";
-type ControlFilter = "all" | "lights" | "switches";
+type ControlFilter = "all" | "lights" | "switches" | "media" | "routines";
 
-const CONTROL_DOMAINS = new Set(["light", "switch", "fan", "input_boolean"]);
+const CONTROL_DOMAINS = new Set(["light", "switch", "fan", "input_boolean", "media_player", "scene", "script"]);
 const USEFUL_SENSOR_CLASSES = new Set([
   "battery",
   "carbon_dioxide",
@@ -101,6 +104,8 @@ const FILTERS: Array<{ id: ControlFilter; label: string }> = [
   { id: "all", label: "全部" },
   { id: "lights", label: "灯光" },
   { id: "switches", label: "开关" },
+  { id: "media", label: "电视与媒体" },
+  { id: "routines", label: "日常流程" },
 ];
 
 const FAMILY = [
@@ -196,10 +201,12 @@ function isOn(entity: HomeAssistantEntity) {
   const state = entity.state.toLowerCase();
   if (entity.domain === "lock") return state === "locked";
   if (entity.domain === "cover") return ["open", "opening"].includes(state);
+  if (entity.domain === "media_player") return !["off", "standby", "unavailable", "unknown"].includes(state);
   return state === "on";
 }
 
 function controlAction(entity: HomeAssistantEntity): HomeAssistantAction {
+  if (["scene", "script"].includes(entity.domain)) return "turn_on";
   return isOn(entity) ? "turn_off" : "turn_on";
 }
 
@@ -213,6 +220,8 @@ function stateLabel(entity: HomeAssistantEntity) {
     return coverLabels[state] ?? entity.state;
   }
   if (["light", "switch", "fan", "input_boolean"].includes(entity.domain)) return isOn(entity) ? "开" : "关";
+  if (entity.domain === "media_player") return isOn(entity) ? "开" : "关";
+  if (["scene", "script"].includes(entity.domain)) return "运行";
   if (entity.domain === "climate") {
     const temperature = entity.attributes.current_temperature ?? entity.attributes.temperature;
     return temperature === undefined ? entity.state : `${temperature}° · ${entity.state}`;
@@ -244,13 +253,17 @@ function EntityIcon({ entity }: { entity: HomeAssistantEntity }) {
   if (entity.attributes.device_class === "battery") return <Battery />;
   if (entity.domain === "person") return <UserRound />;
   if (entity.domain === "switch" || entity.domain === "input_boolean") return <Power />;
+  if (entity.domain === "media_player") return <Tv />;
+  if (["scene", "script"].includes(entity.domain)) return <Sparkles />;
   return <Activity />;
 }
 
 function matchesFilter(entity: HomeAssistantEntity, filter: ControlFilter) {
   if (filter === "all") return true;
   if (filter === "lights") return entity.domain === "light";
-  return ["switch", "fan", "input_boolean"].includes(entity.domain);
+  if (filter === "switches") return ["switch", "fan", "input_boolean"].includes(entity.domain);
+  if (filter === "media") return entity.domain === "media_player";
+  return ["scene", "script"].includes(entity.domain);
 }
 
 function formatRate(bytesPerSecond = 0) {
@@ -329,13 +342,19 @@ export function HomeAutomationApp() {
   const runAction = async (entity: HomeAssistantEntity) => {
     if (pending.has(entity.entityId) || ["unavailable", "unknown"].includes(entity.state.toLowerCase())) return;
     const action = controlAction(entity);
+    const isRoutine = ["scene", "script"].includes(entity.domain);
+    let deferPendingRelease = false;
     setPending((current) => new Set(current).add(entity.entityId));
-    setStatus((current) => current ? {
-      ...current,
-      entities: current.entities?.map((item) => item.entityId === entity.entityId
-        ? { ...item, state: action === "turn_on" ? "on" : "off" }
-        : item),
-    } : current);
+    // Scenes and scripts report their last-run time instead of an on/off state,
+    // so only optimistic-update controls that behave like switches.
+    if (!isRoutine) {
+      setStatus((current) => current ? {
+        ...current,
+        entities: current.entities?.map((item) => item.entityId === entity.entityId
+          ? { ...item, state: action === "turn_on" ? "on" : "off" }
+          : item),
+      } : current);
+    }
     try {
       const response = await fetch("/api/home-assistant/action", {
         method: "POST",
@@ -344,16 +363,26 @@ export function HomeAutomationApp() {
       });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error || "The control did not respond");
-      window.setTimeout(() => void refresh(), 500);
+      deferPendingRelease = scheduleHomeActionRefresh({
+        isRoutine,
+        refresh,
+        releasePending: () => setPending((current) => {
+          const next = new Set(current);
+          next.delete(entity.entityId);
+          return next;
+        }),
+      });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "The control did not respond");
       void refresh();
     } finally {
-      setPending((current) => {
-        const next = new Set(current);
-        next.delete(entity.entityId);
-        return next;
-      });
+      if (!deferPendingRelease) {
+        setPending((current) => {
+          const next = new Set(current);
+          next.delete(entity.entityId);
+          return next;
+        });
+      }
     }
   };
 
@@ -466,15 +495,17 @@ export function HomeAutomationApp() {
               <div className="home-device-grid">
                 {controls.map((entity) => (
                   <button
-                    className={`home-device-card ${isOn(entity) ? "is-on" : ""}`}
+                    className={`home-device-card ${isOn(entity) ? "is-on" : ""}${["scene", "script"].includes(entity.domain) ? " is-action" : ""}`}
                     key={entity.entityId}
                     onClick={() => void runAction(entity)}
                     disabled={pending.has(entity.entityId) || ["unavailable", "unknown"].includes(entity.state.toLowerCase())}
-                    aria-pressed={isOn(entity)}
+                    aria-pressed={["scene", "script"].includes(entity.domain) ? undefined : isOn(entity)}
                   >
                     <span className="home-device-icon"><EntityIcon entity={entity} /></span>
                     <span className="home-device-copy"><strong>{entity.name}</strong><small>{stateLabel(entity)}</small></span>
-                    <span className="home-device-toggle"><i /></span>
+                    {["scene", "script"].includes(entity.domain)
+                      ? <span className="home-device-action"><Sparkles /></span>
+                      : <span className="home-device-toggle"><i /></span>}
                   </button>
                 ))}
                 {controls.length === 0 && <p className="home-section-empty">没有匹配的设备。</p>}
