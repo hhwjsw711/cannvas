@@ -156,11 +156,11 @@ export function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ confirm: "poweroff" }),
       });
-      if (!response.ok) throw new Error("Cannvas did not accept the power-off request");
+      if (!response.ok) throw new Error("Cannvas 未接受关机请求");
     } catch (error) {
       window.clearTimeout(recoveryTimer);
       setPowerOffPending(false);
-      setPowerOffError(error instanceof Error ? error.message : "Cannvas could not power off");
+      setPowerOffError(error instanceof Error ? error.message : "Cannvas 无法关机");
     }
   };
 
@@ -221,7 +221,7 @@ export function App() {
                 ))}
                 <button className="more-power-button" onClick={requestPowerOff}>
                   <span className="more-app-icon"><Power /></span>
-                  <span><strong>Turn off Cannvas</strong><small>Shut down the screen safely</small></span>
+                  <span><strong>关闭 Cannvas</strong><small>安全关闭屏幕</small></span>
                 </button>
               </div>
             )}
@@ -249,8 +249,8 @@ export function App() {
 
       <ConfirmDialog
         open={powerOffOpen}
-        title="Turn off Cannvas?"
-        confirmLabel={powerOffPending ? "Turning off…" : "Turn off"}
+        title="关闭 Cannvas？"
+        confirmLabel={powerOffPending ? "正在关闭…" : "关闭"}
         confirmDisabled={powerOffPending}
         onCancel={() => {
           if (powerOffPending) return;
@@ -259,7 +259,7 @@ export function App() {
         }}
         onConfirm={() => void powerOff()}
       >
-        <p>This safely shuts down the Cannvas computer. You will need to turn its power back on to start it again.</p>
+        <p>这将安全地关闭 Cannvas 电脑。如需再次启动，请重新打开电源。</p>
         {powerOffError && <p className="dialog-error">{powerOffError}</p>}
       </ConfirmDialog>
     </main>

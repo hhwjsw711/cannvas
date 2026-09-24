@@ -1,7 +1,7 @@
 export const ROUTINE_ACTION_COOLDOWN_MS = 1_000;
 export const CONTROL_REFRESH_DELAY_MS = 500;
 export const POWER_OFF_RECOVERY_MS = 15_000;
-export const POWER_OFF_RECOVERY_MESSAGE = "Cannvas is still online. Please try again.";
+export const POWER_OFF_RECOVERY_MESSAGE = "Cannvas 仍在运行，请稍后重试。";
 
 type Schedule = (callback: () => void, delay: number) => number;
 

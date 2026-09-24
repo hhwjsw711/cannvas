@@ -90,7 +90,7 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
     return await Promise.race([
       promise,
       new Promise<never>((_, reject) => {
-        timeout = window.setTimeout(() => reject(new Error("Calendar request timed out")), timeoutMs);
+        timeout = window.setTimeout(() => reject(new Error("日历请求超时")), timeoutMs);
       }),
     ]);
   } finally {

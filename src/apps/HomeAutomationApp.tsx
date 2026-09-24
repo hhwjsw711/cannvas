@@ -288,12 +288,12 @@ export function HomeAutomationApp() {
     try {
       const response = await fetch("/api/home-assistant/status", { cache: "no-store" });
       const body = await response.json() as HomeAssistantStatus & { error?: string };
-      if (!response.ok) throw new Error(body.error || "Could not reach Home Assistant");
+      if (!response.ok) throw new Error(body.error || "无法连接到 Home Assistant");
       setStatus(body);
       setUrl(body.url ?? body.defaultUrl ?? "http://homeassistant.local:8123");
       setError("");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not reach Home Assistant");
+      setError(requestError instanceof Error ? requestError.message : "无法连接到 Home Assistant");
     }
   }, []);
 
@@ -362,7 +362,7 @@ export function HomeAutomationApp() {
         body: JSON.stringify({ entityId: entity.entityId, action }),
       });
       const body = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(body.error || "The control did not respond");
+      if (!response.ok) throw new Error(body.error || "设备没有响应");
       deferPendingRelease = scheduleHomeActionRefresh({
         isRoutine,
         refresh,
@@ -373,7 +373,7 @@ export function HomeAutomationApp() {
         }),
       });
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "The control did not respond");
+      setError(requestError instanceof Error ? requestError.message : "设备没有响应");
       void refresh();
     } finally {
       if (!deferPendingRelease) {
@@ -398,12 +398,12 @@ export function HomeAutomationApp() {
         body: JSON.stringify({ url: url.trim(), token: token.trim() }),
       });
       const body = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(body.error || "Could not connect Home Assistant");
+      if (!response.ok) throw new Error(body.error || "无法连接 Home Assistant");
       setToken("");
       setShowSettings(false);
       await refresh();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not connect Home Assistant");
+      setError(requestError instanceof Error ? requestError.message : "无法连接 Home Assistant");
     } finally {
       setSaving(false);
     }
