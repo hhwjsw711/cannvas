@@ -54,6 +54,21 @@ const MAX_PHOTOS_PER_ITEM = 24;
 const INVENTORY_PAGE_SIZE = 18;
 const BOX_ONLY_TAG = "box only";
 
+// Convex 事件类型 -> 中文展示文案（历史记录用）
+const EVENT_LABELS: Record<string, string> = {
+  added: "添加",
+  edited: "编辑",
+  moved: "移动",
+  photo_added: "添加照片",
+  ai_enriched: "AI 识别",
+  ai_failed: "AI 识别失败",
+  disposed: "已丢弃",
+  donated: "已捐赠",
+  sold: "已出售",
+  lost: "已丢失",
+  restored: "已恢复",
+};
+
 function hasTag(tags: string[], tag: string) {
   const normalizedTag = tag.toLocaleLowerCase("en-AU");
   return tags.some((candidate) => candidate.toLocaleLowerCase("en-AU") === normalizedTag);
@@ -87,19 +102,19 @@ function AuthScreen() {
   return (
     <main className="inventory-auth">
       <div className="inventory-auth-mark"><Box /></div>
-      <h1>Cannvas Inventory</h1>
-      <p>Everything you own, and exactly where you put it.</p>
+      <h1>Cannvas 物品清单</h1>
+      <p>你拥有的每一样东西，以及它确切存放的位置。</p>
       <form onSubmit={submit}>
-        <label>Email<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
-        <label>Password<input type="password" autoComplete={flow === "signUp" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required /></label>
+        <label>邮箱<input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required /></label>
+        <label>密码<input type="password" autoComplete={flow === "signUp" ? "new-password" : "current-password"} value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required /></label>
         {error && <div className="inventory-error"><CircleAlert />{error}</div>}
         <button className="inventory-primary" disabled={busy}>
           {busy ? <LoaderCircle className="spin" /> : null}
-          {flow === "signIn" ? "Sign in" : "Create account"}
+          {flow === "signIn" ? "登录" : "创建账户"}
         </button>
       </form>
       <button className="inventory-text-button" onClick={() => setFlow(flow === "signIn" ? "signUp" : "signIn")}>
-        {flow === "signIn" ? "First time? Create an account" : "Already have an account? Sign in"}
+        {flow === "signIn" ? "第一次使用？创建账户" : "已有账户？登录"}
       </button>
     </main>
   );
@@ -115,15 +130,15 @@ function AccessGate() {
   return (
     <main className="inventory-auth">
       <div className="inventory-auth-mark"><ShieldCheck /></div>
-      <h1>Access needed</h1>
-      <p>This account has not been granted access to the Cannvas household inventory.</p>
-      <button className="inventory-text-button" onClick={() => void signOut()}>Sign out</button>
+      <h1>需要访问权限</h1>
+      <p>该账户尚未获得访问 Cannvas 家庭物品清单的权限。</p>
+      <button className="inventory-text-button" onClick={() => void signOut()}>退出登录</button>
     </main>
   );
 }
 
 function LoadingScreen() {
-  return <main className="inventory-loading"><LoaderCircle className="spin" /><span>Opening inventory…</span></main>;
+  return <main className="inventory-loading"><LoaderCircle className="spin" /><span>正在打开物品清单…</span></main>;
 }
 
 async function uploadFiles(
@@ -137,7 +152,7 @@ async function uploadFiles(
       headers: { "Content-Type": file.type || "image/jpeg" },
       body: file,
     });
-    if (!response.ok) throw new Error("A photo could not be uploaded. Please try again.");
+    if (!response.ok) throw new Error("照片上传失败，请重试。");
     return (await response.json() as { storageId: Id<"_storage"> }).storageId;
   }));
 }
@@ -228,7 +243,7 @@ function CaptureSheet({ onClose }: { onClose: () => void }) {
       clearPhotos();
       if (keepGoing) {
         setBoxOnly(false);
-        setSuccess("Item saved and queued for AI. Ready for the next one.");
+        setSuccess("物品已保存，已加入 AI 识别队列。可以继续添加下一件。");
         setBusy(false);
       } else {
         onClose();
@@ -245,8 +260,8 @@ function CaptureSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="inventory-sheet-backdrop" role="presentation">
-      <section className="inventory-sheet" role="dialog" aria-modal="true" aria-label="Add an inventory item">
-        <header><div><h2>Add an item</h2><p>Photograph labels, connectors and each useful angle.</p></div><button className="inventory-icon-button" aria-label="Close" disabled={busy || isUploading} onClick={onClose}><X /></button></header>
+      <section className="inventory-sheet" role="dialog" aria-modal="true" aria-label="添加物品">
+        <header><div><h2>添加物品</h2><p>拍摄标签、接口和各个有用的角度。</p></div><button className="inventory-icon-button" aria-label="关闭" disabled={busy || isUploading} onClick={onClose}><X /></button></header>
         <input ref={inputRef} className="visually-hidden" type="file" accept="image/*" capture="environment" onChange={(event) => {
           // FileList is live. Copy it before resetting the input or Safari empties it
           // before React gets to the state update.
@@ -257,36 +272,36 @@ function CaptureSheet({ onClose }: { onClose: () => void }) {
         <div className="inventory-photo-strip">
           {photos.map((photo, index) => (
             <div className="inventory-photo-preview" key={photo.id}>
-              <img src={photo.previewUrl} alt={`Item angle ${index + 1}`} />
+              <img src={photo.previewUrl} alt={`物品角度 ${index + 1}`} />
               <span className={`inventory-photo-upload-state ${photo.status}`}>
                 {photo.status === "uploading" ? <LoaderCircle className="spin" /> : photo.status === "uploaded" ? <CircleCheck /> : <CircleAlert />}
               </span>
-              <button aria-label={`Remove angle ${index + 1}`} onClick={() => removePhoto(photo)}><X /></button>
+              <button aria-label={`移除角度 ${index + 1}`} onClick={() => removePhoto(photo)}><X /></button>
             </div>
           ))}
-          {photos.length < MAX_PHOTOS_PER_UPLOAD && <button className="inventory-add-photo" onClick={() => inputRef.current?.click()}><Camera /><span>{photos.length ? "Another angle" : success ? "Photograph next item" : "Take photo"}</span></button>}
+          {photos.length < MAX_PHOTOS_PER_UPLOAD && <button className="inventory-add-photo" onClick={() => inputRef.current?.click()}><Camera /><span>{photos.length ? "再来一张" : success ? "拍摄下一件物品" : "拍照"}</span></button>}
         </div>
         <label className="inventory-location-field">
-          <span>Where will it live?</span>
-          <div><MapPin /><input value={location} list="inventory-locations" placeholder="Attic, box A" onChange={(event) => setLocation(event.target.value)} /></div>
+          <span>它放在哪里？</span>
+          <div><MapPin /><input value={location} list="inventory-locations" placeholder="例如：阁楼、A 箱" onChange={(event) => setLocation(event.target.value)} /></div>
         </label>
         <datalist id="inventory-locations">{suggestions.map((suggestion) => <option key={suggestion._id} value={suggestion.name} />)}</datalist>
         {suggestions.length > 0 && <div className="inventory-location-chips">{suggestions.slice(0, 6).map((suggestion) => <button key={suggestion._id} onClick={() => setLocation(suggestion.name)}>{suggestion.name}</button>)}</div>}
         <label className="inventory-box-toggle">
           <input type="checkbox" checked={boxOnly} onChange={(event) => setBoxOnly(event.target.checked)} />
-          <span><PackageOpen /><span><b>Box only</b><small>The electronic or item is not inside</small></span></span>
+          <span><PackageOpen /><span><b>仅盒子</b><small>物品不在盒内</small></span></span>
         </label>
         {success && <div className="inventory-success" aria-live="polite"><CircleCheck />{success}</div>}
         {error && <div className="inventory-error"><CircleAlert />{error}</div>}
         {hasFailedUploads ? (
-          <button className="inventory-save-button" disabled={busy} onClick={retryUploads}>Retry uploads</button>
+          <button className="inventory-save-button" disabled={busy} onClick={retryUploads}>重试上传</button>
         ) : (
           <div className="inventory-capture-actions">
             <button className="inventory-save-button" disabled={busy || !canSave} onClick={() => void save(true)}>
               {busy || isUploading ? <LoaderCircle className="spin" /> : <Sparkles />}
-              {busy ? "Saving item…" : isUploading ? "Uploading photos…" : "Add item & next"}
+              {busy ? "正在保存物品…" : isUploading ? "正在上传照片…" : "保存并添加下一件"}
             </button>
-            <button className="inventory-finish-button" disabled={busy || !canSave} onClick={() => void save(false)}>Add item & finish</button>
+            <button className="inventory-finish-button" disabled={busy || !canSave} onClick={() => void save(false)}>保存并完成</button>
           </div>
         )}
       </section>
@@ -304,11 +319,11 @@ function InventoryCard({ item, onOpen }: {
     <button className="inventory-card" onClick={onOpen}>
       <div className="inventory-card-photo">
         {item.photoUrl ? <img src={item.photoUrl} alt="" /> : <PackageOpen />}
-        {item.enrichmentStatus !== "ready" && <span className={`inventory-ai-state ${item.enrichmentStatus}`}><Sparkles />{item.enrichmentStatus === "failed" ? "Needs details" : "Identifying"}</span>}
-        {item.enrichmentStatus === "ready" && needsReview && <span className="inventory-ai-state review"><CircleAlert />Needs review</span>}
+        {item.enrichmentStatus !== "ready" && <span className={`inventory-ai-state ${item.enrichmentStatus}`}><Sparkles />{item.enrichmentStatus === "failed" ? "需要补充" : "识别中"}</span>}
+        {item.enrichmentStatus === "ready" && needsReview && <span className="inventory-ai-state review"><CircleAlert />需要复核</span>}
       </div>
       <div className="inventory-card-copy">
-        <div className="inventory-card-labels"><span className="inventory-category">{item.category}</span>{boxOnly && <span className="inventory-box-only-label"><PackageOpen />Box only</span>}</div>
+        <div className="inventory-card-labels"><span className="inventory-category">{item.category}</span>{boxOnly && <span className="inventory-box-only-label"><PackageOpen />仅盒子</span>}</div>
         <h2>{item.title}</h2>
         {item.description && <p>{item.description}</p>}
         <div className="inventory-card-location"><MapPin />{item.currentLocationName}{item.quantity > 1 && <b>×{item.quantity}</b>}</div>
@@ -380,7 +395,7 @@ function DetailSheet({ itemId, onClose }: { itemId: Id<"inventoryItems">; onClos
     if (!files.length) return;
     const availableSlots = MAX_PHOTOS_PER_ITEM - photos.length;
     if (availableSlots <= 0) {
-      setError(`An item can have at most ${MAX_PHOTOS_PER_ITEM} photos.`);
+      setError(`每个物品最多可保存 ${MAX_PHOTOS_PER_ITEM} 张照片。`);
       return;
     }
     setBusy(true);
@@ -415,8 +430,8 @@ function DetailSheet({ itemId, onClose }: { itemId: Id<"inventoryItems">; onClos
       <article className="inventory-detail">
         <header className="inventory-detail-header"><button className="inventory-icon-button" onClick={onClose}><ChevronLeft /></button><button className="inventory-icon-button" onClick={() => setEditing(!editing)}><Pencil /></button></header>
         <div className="inventory-detail-photos">
-          {photos.map((photo) => photo.url && <img key={photo._id} src={photo.url} alt="Inventory item" />)}
-          {photos.length < MAX_PHOTOS_PER_ITEM && <button disabled={busy} onClick={() => photoInput.current?.click()}><Camera /><span>Add photos</span></button>}
+          {photos.map((photo) => photo.url && <img key={photo._id} src={photo.url} alt="物品照片" />)}
+          {photos.length < MAX_PHOTOS_PER_ITEM && <button disabled={busy} onClick={() => photoInput.current?.click()}><Camera /><span>添加照片</span></button>}
           <input ref={photoInput} className="visually-hidden" type="file" accept="image/*" capture="environment" multiple onChange={(event) => {
             const incoming = Array.from(event.currentTarget.files ?? []);
             event.currentTarget.value = "";
@@ -425,30 +440,30 @@ function DetailSheet({ itemId, onClose }: { itemId: Id<"inventoryItems">; onClos
         </div>
         {editing ? (
           <form className="inventory-edit-form" onSubmit={saveDetails}>
-            <label>Title<input name="title" defaultValue={item.title} /></label>
-            <label>Description<textarea name="description" defaultValue={item.description} rows={4} /></label>
-            <div className="inventory-form-pair"><label>Category<input name="category" defaultValue={item.category} /></label><label>Quantity<input name="quantity" type="number" min="1" defaultValue={item.quantity} /></label></div>
-            <label>Condition<input name="condition" defaultValue={item.condition} /></label>
-            <label>Tags<input name="tags" defaultValue={item.tags.join(", ")} /></label>
-            <label className="inventory-edit-box-toggle"><input name="boxOnly" type="checkbox" defaultChecked={hasTag(item.tags, BOX_ONLY_TAG)} />Box only, item is not inside</label>
-            <button className="inventory-primary" disabled={busy}>Save details</button>
+            <label>名称<input name="title" defaultValue={item.title} /></label>
+            <label>描述<textarea name="description" defaultValue={item.description} rows={4} /></label>
+            <div className="inventory-form-pair"><label>分类<input name="category" defaultValue={item.category} /></label><label>数量<input name="quantity" type="number" min="1" defaultValue={item.quantity} /></label></div>
+            <label>状况<input name="condition" defaultValue={item.condition} /></label>
+            <label>标签<input name="tags" defaultValue={item.tags.join(", ")} /></label>
+            <label className="inventory-edit-box-toggle"><input name="boxOnly" type="checkbox" defaultChecked={hasTag(item.tags, BOX_ONLY_TAG)} />仅盒子，物品不在盒内</label>
+            <button className="inventory-primary" disabled={busy}>保存修改</button>
           </form>
         ) : (
           <div className="inventory-detail-copy">
             <span className="inventory-category">{item.category}</span>
             <h1>{item.title}</h1>
-            <p>{item.description || "No description yet."}</p>
-            <div className="inventory-detail-meta"><span><MapPin />{item.currentLocationName}</span><span>{item.condition}</span><span>Qty {item.quantity}</span>{hasTag(item.tags, BOX_ONLY_TAG) && <span className="box-only"><PackageOpen />Box only</span>}</div>
+            <p>{item.description || "暂无描述。"}</p>
+            <div className="inventory-detail-meta"><span><MapPin />{item.currentLocationName}</span><span>{item.condition}</span><span>数量 {item.quantity}</span>{hasTag(item.tags, BOX_ONLY_TAG) && <span className="box-only"><PackageOpen />仅盒子</span>}</div>
             {item.tags.length > 0 && <div className="inventory-tags">{item.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>}
-            {hasTag(item.tags, "needs review") && <div className="inventory-review-note"><CircleAlert />The AI was not confident about every detail. Check the title, photos and attributes when you have a moment.</div>}
+            {hasTag(item.tags, "needs review") && <div className="inventory-review-note"><CircleAlert />AI 对部分细节不够确定。有空时请检查名称、照片和属性。</div>}
             {item.attributes.length > 0 && <dl className="inventory-attributes">{item.attributes.map(({ label, value }) => <div key={`${label}-${value}`}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>}
-            {item.enrichmentStatus === "failed" && <div className="inventory-error"><CircleAlert />{item.enrichmentError ?? "AI identification failed."}</div>}
-            {item.aiSources.length > 0 && <section className="inventory-sources"><h2>Identification sources</h2>{item.aiSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.title}</a>)}</section>}
+            {item.enrichmentStatus === "failed" && <div className="inventory-error"><CircleAlert />{item.enrichmentError ?? "AI 识别失败。"}</div>}
+            {item.aiSources.length > 0 && <section className="inventory-sources"><h2>识别信息来源</h2>{item.aiSources.map((source) => <a key={source.url} href={source.url} target="_blank" rel="noreferrer">{source.title}</a>)}</section>}
           </div>
         )}
-        <section className="inventory-move"><h2>Move item</h2><div><input value={location} list="detail-locations" placeholder="Enter a new location" onChange={(event) => setLocation(event.target.value)} /><button disabled={!location.trim() || busy} onClick={() => void moveItem()}>Move</button></div><datalist id="detail-locations">{suggestions.map((suggestion) => <option key={suggestion._id} value={suggestion.name} />)}</datalist></section>
-        <section className="inventory-lifecycle"><h2>Item status</h2><select value={item.status} disabled={busy} onChange={(event) => void changeStatus(event.target.value as InventoryStatus)}><option value="active">In inventory</option><option value="disposed">Thrown away</option><option value="donated">Donated</option><option value="sold">Sold</option><option value="lost">Lost</option></select></section>
-        <section className="inventory-history"><h2>History</h2>{events.map((event) => <div key={event._id}><span>{event.type.replaceAll("_", " ")}</span><p>{event.fromLocationName && event.toLocationName ? `${event.fromLocationName} → ${event.toLocationName}` : event.note}</p><time>{new Date(event.occurredAt).toLocaleString("en-AU", { dateStyle: "medium", timeStyle: "short" })}</time></div>)}</section>
+        <section className="inventory-move"><h2>移动物品</h2><div><input value={location} list="detail-locations" placeholder="输入新位置" onChange={(event) => setLocation(event.target.value)} /><button disabled={!location.trim() || busy} onClick={() => void moveItem()}>移动</button></div><datalist id="detail-locations">{suggestions.map((suggestion) => <option key={suggestion._id} value={suggestion.name} />)}</datalist></section>
+        <section className="inventory-lifecycle"><h2>物品状态</h2><select value={item.status} disabled={busy} onChange={(event) => void changeStatus(event.target.value as InventoryStatus)}><option value="active">在物品中</option><option value="disposed">已丢弃</option><option value="donated">已捐赠</option><option value="sold">已出售</option><option value="lost">已丢失</option></select></section>
+        <section className="inventory-history"><h2>历史记录</h2>{events.map((event) => <div key={event._id}><span>{EVENT_LABELS[event.type] ?? event.type.replaceAll("_", " ")}</span><p>{event.fromLocationName && event.toLocationName ? `${event.fromLocationName} → ${event.toLocationName}` : event.note}</p><time>{new Date(event.occurredAt).toLocaleString("zh-CN", { dateStyle: "medium", timeStyle: "short" })}</time></div>)}</section>
         {error && <div className="inventory-error inventory-sticky-error"><CircleAlert />{error}</div>}
       </article>
     </div>
@@ -484,23 +499,23 @@ function InventoryBrowser() {
   return (
     <main className="inventory-root">
       <header className="inventory-topbar">
-        <div><div className="inventory-logo"><Box /></div><h1>Inventory</h1></div>
-        <button className="inventory-icon-button" onClick={() => void signOut()} aria-label="Sign out"><LogOut /></button>
+        <div><div className="inventory-logo"><Box /></div><h1>物品清单</h1></div>
+        <button className="inventory-icon-button" onClick={() => void signOut()} aria-label="退出登录"><LogOut /></button>
       </header>
-      <div className="inventory-search"><Search /><input type="search" value={search} placeholder="Search everything" onChange={(event) => setSearch(event.target.value)} />{search && <button onClick={() => setSearch("")}><X /></button>}</div>
+      <div className="inventory-search"><Search /><input type="search" value={search} placeholder="搜索所有物品" onChange={(event) => setSearch(event.target.value)} />{search && <button onClick={() => setSearch("")}><X /></button>}</div>
       <div className="inventory-status-tabs">
-        <button className={status === "active" ? "active" : ""} onClick={() => setStatus("active")}>In inventory</button>
-        <button className={reviewFilterActive ? "active" : ""} onClick={() => setSearch(reviewFilterActive ? "" : "needs review")}>Needs review</button>
-        <button className={status !== "active" ? "active" : ""} onClick={() => setStatus(status === "active" ? "disposed" : status)}>Removed</button>
-        {status !== "active" && <select value={status} onChange={(event) => setStatus(event.target.value as InventoryStatus)}><option value="disposed">Thrown away</option><option value="donated">Donated</option><option value="sold">Sold</option><option value="lost">Lost</option></select>}
+        <button className={status === "active" ? "active" : ""} onClick={() => setStatus("active")}>在物品中</button>
+        <button className={reviewFilterActive ? "active" : ""} onClick={() => setSearch(reviewFilterActive ? "" : "needs review")}>需要复核</button>
+        <button className={status !== "active" ? "active" : ""} onClick={() => setStatus(status === "active" ? "disposed" : status)}>已移除</button>
+        {status !== "active" && <select value={status} onChange={(event) => setStatus(event.target.value as InventoryStatus)}><option value="disposed">已丢弃</option><option value="donated">已捐赠</option><option value="sold">已出售</option><option value="lost">已丢失</option></select>}
       </div>
       <section className="inventory-grid">
         {results.map((item) => <InventoryCard key={item._id} item={item} onOpen={() => setSelected(item._id)} />)}
       </section>
-      {results.length === 0 && pageStatus !== "LoadingFirstPage" && <div className="inventory-empty"><PackageOpen /><h2>{search ? "Nothing matched" : "Your inventory is empty"}</h2><p>{search ? "Try a different word or location." : "Photograph the first thing you want to keep track of."}</p></div>}
+      {results.length === 0 && pageStatus !== "LoadingFirstPage" && <div className="inventory-empty"><PackageOpen /><h2>{search ? "没有匹配的结果" : "物品清单还是空的"}</h2><p>{search ? "换个关键词或位置试试。" : "拍下第一件想记录的东西吧。"}</p></div>}
       {(pageStatus === "LoadingFirstPage" || pageStatus === "LoadingMore") && <div className="inventory-page-loading"><LoaderCircle className="spin" /></div>}
       <div ref={sentinel} />
-      <button className="inventory-fab" onClick={() => setCapturing(true)}><Plus /><span>Add item</span></button>
+      <button className="inventory-fab" onClick={() => setCapturing(true)}><Plus /><span>添加物品</span></button>
       {capturing && <CaptureSheet onClose={() => setCapturing(false)} />}
       {selected && <DetailSheet itemId={selected} onClose={() => setSelected(null)} />}
     </main>
