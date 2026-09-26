@@ -29,7 +29,7 @@ test("scenes and scripts are routines that always turn on", () => {
   const scene = entity("scene.movie", "2026-09-25T10:00:00Z");
   assert.equal(isRoutine(scene), true);
   assert.equal(controlAction(scene), "turn_on");
-  assert.equal(stateLabel(scene), "Run");
+  assert.equal(stateLabel(scene), "运行");
   assert.equal(matchesFilter(scene, "routines"), true);
 });
 
@@ -41,17 +41,17 @@ test("switch-like controls toggle", () => {
 });
 
 test("labels sensors in plain words", () => {
-  assert.equal(stateLabel(entity("binary_sensor.front", "on", { device_class: "door" })), "Open");
-  assert.equal(stateLabel(entity("binary_sensor.hall", "off", { device_class: "motion" })), "Clear");
+  assert.equal(stateLabel(entity("binary_sensor.front", "on", { device_class: "door" })), "打开");
+  assert.equal(stateLabel(entity("binary_sensor.hall", "off", { device_class: "motion" })), "无");
   assert.equal(stateLabel(entity("sensor.phone", "54.4", { device_class: "battery", unit_of_measurement: "%" })), "54 %");
-  assert.equal(stateLabel(entity("person.mike", "not_home")), "Away");
+  assert.equal(stateLabel(entity("person.mike", "not_home")), "外出");
 });
 
 test("a jammed or moving lock never reads as unlocked", () => {
-  assert.equal(stateLabel(entity("lock.front", "locked")), "Locked");
-  assert.equal(stateLabel(entity("lock.front", "unlocked")), "Unlocked");
-  assert.equal(stateLabel(entity("lock.front", "jammed")), "Jammed");
-  assert.equal(stateLabel(entity("lock.front", "locking")), "Locking");
+  assert.equal(stateLabel(entity("lock.front", "locked")), "已锁定");
+  assert.equal(stateLabel(entity("lock.front", "unlocked")), "未锁定");
+  assert.equal(stateLabel(entity("lock.front", "jammed")), "jammed");
+  assert.equal(stateLabel(entity("lock.front", "locking")), "locking");
 });
 
 test("matches family members by their most specific name", () => {
