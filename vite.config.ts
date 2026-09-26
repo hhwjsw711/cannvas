@@ -35,6 +35,9 @@ function injectKioskCss(): Plugin {
   };
 }
 
+// The kiosk build for the Pi (`pnpm build:mirror`). It includes the device
+// token, so its dist/ output must never be published. The public website is
+// built by vite.public.config.ts into dist-public/.
 export default defineConfig({
   plugins: [react(), injectKioskCss()],
   server: {

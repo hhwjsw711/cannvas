@@ -1,13 +1,11 @@
-import { CheckCircle2, Clock3, Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, MapPinned, Snowflake, Sun, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ComponentType } from "react";
-import { useCannvasData } from "../data/DataProvider";
-import { addCalendarDays, calendarDateKey, calendarEventTime, eventsForDate } from "../lib/calendar";
-
-// The mirror proxies Bruce's private media service so the browser only needs
-// access to the same loopback origin as the rest of Cannvas.
-const VIDEO_ROOT = "/videos/";
-const VIDEO_CACHE_KEY = "cannvas-video-list-v3";
-const VIDEO_PATTERN = /<a href="([^"]+)"/g;
+import { Cloud, CloudFog, CloudLightning, CloudRain, CloudSun, Home, MapPinned, Snowflake, Sun, UtilityPole, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useState, type ComponentType } from "react";
+import { useNews } from "../data/DataProvider";
+import { FLOW_THRESHOLD_KW, formatKw, isSolarFresh } from "../lib/solar";
+import { useMinuteClock } from "../lib/useMinuteClock";
+import { useSolar } from "../lib/useSolar";
+import { CalendarHomeWidget } from "./display/CalendarHomeWidget";
+import { IdleVideo } from "./display/IdleVideo";
 
 // --- Weather (Open-Meteo, reusing the same API as WeatherApp) ---
 const LISHUI = { latitude: 28.4679, longitude: 119.9229 };
@@ -110,228 +108,41 @@ function useDisplayWeather() {
   return weather;
 }
 
-function WeatherWidget() {
-  const weather = useDisplayWeather();
-  if (!weather) return null;
-  const condition = conditionFor(weather.current.weather_code);
-  const Icon = condition.icon;
-  const high = round(weather.daily.temperature_2m_max[0]);
-  const low = round(weather.daily.temperature_2m_min[0]);
-  // next rain in 12h
-  const now = new Date();
-  const currentHourIdx = weather.hourly.time.findIndex(t => new Date(t).getTime() > now.getTime());
-  const startIdx = Math.max(0, currentHourIdx === -1 ? 0 : currentHourIdx - 1);
-  const nextHours = weather.hourly.time.slice(startIdx, startIdx + 12);
-  const nextRain = nextHours.find((_, i) => {
-    const idx = startIdx + i;
-    return weather.hourly.precipitation_probability[idx] >= 30;
-  });
-  const rainHour = nextRain ? new Date(nextRain).toLocaleTimeString("zh-CN", { hour: "numeric" }) : null;
-  return (
-    <>
-      <div className="display-weather-current">
-        <Icon className="display-weather-icon" />
-        <strong>{round(weather.current.temperature_2m)}°</strong>
-        <span>{condition.label}</span>
-      </div>
-      <div className="display-weather-details">
-        <span>高 {high}° / 低 {low}°</span>
-        <span>体感 {round(weather.current.apparent_temperature)}°</span>
-        {rainHour ? <span className="display-weather-rain">{rainHour} 有雨</span> : <span>未来无雨</span>}
-      </div>
-    </>
-  );
-}
-
-async function crawlVideos(root = VIDEO_ROOT, depth = 0, visited = new Set<string>()): Promise<string[]> {
-  if (depth > 10 || visited.has(root)) return [];
-  visited.add(root);
-  const response = await fetch(root);
-  if (!response.ok) throw new Error(`Video server returned ${response.status}`);
-  const html = await response.text();
-  const urls = [...html.matchAll(VIDEO_PATTERN)]
-    .map((match) => match[1])
-    .filter((href) => href !== "../" && href !== "./../")
-    // Keep proxy URLs relative to Cannvas. `new URL(href, root)` turns them
-    // into absolute browser URLs, which then fail the VIDEO_ROOT safety check.
-    .map((href) => new URL(href, new URL(root, window.location.origin)).pathname)
-    .filter((url) => url.startsWith(VIDEO_ROOT));
-  const videos = urls.filter((url) => /\.(mp4|m4v|mov|webm)$/i.test(url));
-  const folders = urls.filter((url) => url.endsWith("/") && url !== root);
-  const nested = await Promise.all(folders.map((folder) => crawlVideos(folder, depth + 1, visited)));
-  return [...videos, ...nested.flat()];
-}
-
 export function DisplayApp({
   displaySession,
   onActivity,
   onOpenCalendar,
   onOpenWeather,
   onOpenLocations,
+  onOpenSolar,
 }: {
   displaySession: number;
   onActivity: () => void;
   onOpenCalendar: () => void;
   onOpenWeather: () => void;
   onOpenLocations: () => void;
+  onOpenSolar: () => void;
 }) {
-  const { calendarEvents, calendarStatus, newsHeadlines } = useCannvasData();
-  const familyPresence = useFamilyPresence();
-  const [now, setNow] = useState(new Date());
   const [videoAudio, setVideoAudio] = useState(() => ({ session: displaySession, muted: true }));
-  const [calendarCanExpand, setCalendarCanExpand] = useState(false);
-  const calendarWidgetRef = useRef<HTMLElement>(null);
-  const [weatherVersion, setWeatherVersion] = useState(Date.now()); // kept for potential cache-busting
-  const [videos, setVideos] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(VIDEO_CACHE_KEY) ?? "[]") as string[]; } catch { return []; }
-  });
-  const [videoIndex, setVideoIndex] = useState(() => Math.floor(Math.random() * Math.max(1, videos.length)));
+  const [videoPlayable, setVideoPlayable] = useState(false);
 
   // Derive this during render so a new session is muted before the video can
   // commit or produce even a brief audio blip. The stored choice only belongs
   // to the display session in which the user made it.
   const videoMuted = videoAudio.session === displaySession ? videoAudio.muted : true;
 
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setWeatherVersion(Date.now()), 2 * 60 * 60 * 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    void crawlVideos().then((found) => {
-      if (found.length > 0) {
-        setVideos(found);
-        localStorage.setItem(VIDEO_CACHE_KEY, JSON.stringify(found));
-      }
-    }).catch(() => undefined);
-  }, []);
-
-  const currentVideo = videos[videoIndex % Math.max(1, videos.length)];
-  const todayKey = calendarDateKey(now);
-  const todayEvents = useMemo(() => eventsForDate(calendarEvents, todayKey), [calendarEvents, todayKey]);
-  const upcomingEvents = useMemo(() => {
-    const result = [];
-    for (let offset = 1; offset <= 7; offset += 1) {
-      const date = addCalendarDays(now, offset);
-      const key = calendarDateKey(date);
-      for (const event of eventsForDate(calendarEvents, key)) {
-        result.push({ event, date, key: `${key}:${event.id}` });
-      }
-    }
-    return result;
-  }, [calendarEvents, todayKey]);
-
-  useEffect(() => {
-    const widget = calendarWidgetRef.current;
-    if (!widget) return;
-
-    const updateOverflow = () => setCalendarCanExpand(widget.scrollHeight > widget.clientHeight + 1);
-    updateOverflow();
-    const observer = new ResizeObserver(updateOverflow);
-    observer.observe(widget);
-    return () => observer.disconnect();
-  }, [calendarStatus, todayEvents.length, upcomingEvents.length]);
-
   return (
     <section className="display-app">
-      <div className="display-media">
-        {currentVideo ? (
-          <video key={currentVideo} src={currentVideo} autoPlay muted={videoMuted} playsInline onEnded={() => setVideoIndex((value) => value + 1)} onError={() => setVideoIndex((value) => value + 1)} />
-        ) : (
-          <div className="display-gradient"><span>C</span></div>
-        )}
-      </div>
-
-      <div className="display-content">
-        <p className="display-date">{now.toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long" })}</p>
-        <div className="display-time">{now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
-      </div>
-
-        <aside
-        ref={calendarWidgetRef}
-        className={`calendar-home-widget${calendarCanExpand ? " has-more" : ""}`}
-        aria-label="打开日历应用"
-        role="button"
-        tabIndex={0}
-        onPointerDown={(event) => event.stopPropagation()}
-        onClick={onOpenCalendar}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            onOpenCalendar();
-          }
-        }}
-      >
-        <section>
-          <h2>今天</h2>
-          <div className="calendar-home-list">
-            {todayEvents.slice(0, 3).map((event) => {
-              const hasPassed = !event.allDay && new Date(event.end) <= now;
-              return (
-                <article className={hasPassed ? "passed" : undefined} key={event.id} aria-label={`${event.title}, ${calendarEventTime(event)}${hasPassed ? ", passed" : ""}`}>
-                  <span className="calendar-home-time">{hasPassed && <CheckCircle2 aria-hidden="true" />}{calendarEventTime(event)}</span>
-                  <strong>{event.title}</strong>
-                </article>
-              );
-            })}
-            {calendarStatus === "ready" && todayEvents.length === 0 && <p className="calendar-home-empty">今天没有日程</p>}
-          </div>
-        </section>
-        <section>
-          <h2>未来</h2>
-          <div className="calendar-home-list upcoming">
-            {upcomingEvents.map(({ event, date, key }) => (
-              <article key={key}>
-                <span className="calendar-home-day">{date.toLocaleDateString("zh-CN", { weekday: "short", day: "numeric" })}</span>
-                <strong>{event.title}</strong>
-                <small><Clock3 /> {calendarEventTime(event)}</small>
-              </article>
-            ))}
-            {calendarStatus === "ready" && upcomingEvents.length === 0 && <p className="calendar-home-empty">未来 7 天没有日程</p>}
-          </div>
-        </section>
-        {calendarStatus !== "ready" && calendarEvents.length === 0 && (
-          <p className="calendar-home-status">{calendarStatus === "not-configured" ? "连接 Google 日历以查看日程" : calendarStatus === "error" ? "日历暂时不可用" : "正在加载日历…"}</p>
-        )}
-      </aside>
+      <IdleVideo muted={videoMuted} onPlayableChange={setVideoPlayable} />
+      <IdleClock />
+      <CalendarHomeWidget onOpen={onOpenCalendar} />
 
       <div className="display-widgets">
-        <button
-          type="button"
-          className="weather-panel display-weather-panel"
-          aria-label="打开丽水详细天气"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={onOpenWeather}
-        >
-          <WeatherWidget />
-        </button>
-        <button
-          type="button"
-          className="weather-panel display-family-panel"
-          aria-label="打开家人位置"
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={onOpenLocations}
-        >
-          <div className="display-family-icon"><MapPinned /></div>
-          <div className="display-family-copy">
-            <strong>{familyPresence && familyPresence.count > 0 ? `${familyPresence.on.join("、")} 已定位` : "家人位置"}</strong>
-            <span>{familyPresence ? `${familyPresence.count} / 2 人在线` : "等待定位…"}</span>
-          </div>
-        </button>
-        <aside className="weather-panel news-panel">
-          <div className="news-header"><span>新闻</span></div>
-          <div className="news-headlines">
-            {(newsHeadlines.length > 0 ? newsHeadlines : [{ title: "正在加载最新新闻…", url: "" }]).slice(0, 3).map((headline) => (
-              <p key={headline.title}>{headline.title}</p>
-            ))}
-          </div>
-        </aside>
-        {currentVideo && (
+        <SolarHomeWidget onOpen={onOpenSolar} />
+        <WeatherWidget onOpen={onOpenWeather} />
+        <FamilyLocationWidget onOpen={onOpenLocations} />
+        <NewsWidget />
+        {videoPlayable && (
           <button
             type="button"
             className={`display-audio-toggle${videoMuted ? "" : " is-playing"}`}
@@ -350,5 +161,111 @@ export function DisplayApp({
         )}
       </div>
     </section>
+  );
+}
+
+// Its own component, so the minute tick re-renders only the clock.
+function IdleClock() {
+  const now = useMinuteClock();
+  return (
+    <div className="display-content">
+      <p className="display-date">{now.toLocaleDateString("zh-CN", { weekday: "long", day: "numeric", month: "long" })}</p>
+      <div className="display-time">{now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false })}</div>
+    </div>
+  );
+}
+
+function WeatherWidget({ onOpen }: { onOpen: () => void }) {
+  const weather = useDisplayWeather();
+  if (!weather) return null;
+  const condition = conditionFor(weather.current.weather_code);
+  const Icon = condition.icon;
+  const high = round(weather.daily.temperature_2m_max[0]);
+  const low = round(weather.daily.temperature_2m_min[0]);
+  // next rain in 12h
+  const now = new Date();
+  const currentHourIdx = weather.hourly.time.findIndex(t => new Date(t).getTime() > now.getTime());
+  const startIdx = Math.max(0, currentHourIdx === -1 ? 0 : currentHourIdx - 1);
+  const nextHours = weather.hourly.time.slice(startIdx, startIdx + 12);
+  const nextRain = nextHours.find((_, i) => {
+    const idx = startIdx + i;
+    return weather.hourly.precipitation_probability[idx] >= 30;
+  });
+  const rainHour = nextRain ? new Date(nextRain).toLocaleTimeString("zh-CN", { hour: "numeric" }) : null;
+  return (
+    <button
+      type="button"
+      className="weather-panel display-weather-panel"
+      aria-label="打开丽水详细天气"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={onOpen}
+    >
+      <div className="display-weather-current">
+        <Icon className="display-weather-icon" />
+        <strong>{round(weather.current.temperature_2m)}°</strong>
+        <span>{condition.label}</span>
+      </div>
+      <div className="display-weather-details">
+        <span>高 {high}° / 低 {low}°</span>
+        <span>体感 {round(weather.current.apparent_temperature)}°</span>
+        {rainHour ? <span className="display-weather-rain">{rainHour} 有雨</span> : <span>未来无雨</span>}
+      </div>
+    </button>
+  );
+}
+
+function FamilyLocationWidget({ onOpen }: { onOpen: () => void }) {
+  const familyPresence = useFamilyPresence();
+  return (
+    <button
+      type="button"
+      className="weather-panel display-family-panel"
+      aria-label="打开家人位置"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={onOpen}
+    >
+      <div className="display-family-icon"><MapPinned /></div>
+      <div className="display-family-copy">
+        <strong>{familyPresence && familyPresence.count > 0 ? `${familyPresence.on.join("、")} 已定位` : "家人位置"}</strong>
+        <span>{familyPresence ? `${familyPresence.count} / 2 人在线` : "等待定位…"}</span>
+      </div>
+    </button>
+  );
+}
+
+function NewsWidget() {
+  const { newsHeadlines } = useNews();
+  const headlines = newsHeadlines.length > 0 ? newsHeadlines : [{ title: "正在加载最新新闻…", url: "" }];
+  return (
+    <aside className="weather-panel news-panel">
+      <div className="news-header"><span>新闻</span></div>
+      <div className="news-headlines">
+        {headlines.slice(0, 3).map((headline) => (
+          <p key={headline.title}>{headline.title}</p>
+        ))}
+      </div>
+    </aside>
+  );
+}
+
+function SolarHomeWidget({ onOpen }: { onOpen: () => void }) {
+  const state = useSolar(15000);
+  if (state.kind !== "ready" || !state.solar.configured || !state.solar.now || !isSolarFresh(state.solar)) return null;
+  const { now } = state.solar;
+  const gridKw = now.gridKw;
+  return (
+    <button
+      type="button"
+      className="solar-home-widget"
+      aria-label="打开太阳能详情"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={onOpen}
+    >
+      <span className="solar"><Sun aria-hidden="true" />{formatKw(now.solarKw)}</span>
+      <span><Home aria-hidden="true" />{formatKw(now.houseKw)}</span>
+      <span className={gridKw == null ? undefined : gridKw > FLOW_THRESHOLD_KW ? "buying" : gridKw < -FLOW_THRESHOLD_KW ? "selling" : undefined}>
+        <UtilityPole aria-hidden="true" />{gridKw == null ? "–" : Math.abs(gridKw) > FLOW_THRESHOLD_KW ? formatKw(gridKw) : "0 W"}
+      </span>
+    </button>
   );
 }

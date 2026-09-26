@@ -4,7 +4,10 @@
 !.env.example
 node_modules/
 dist/
+dist-public/
 .next/
 coverage/
 .wrangler/
 tmp/
+__pycache__/
+.claude/worktrees/

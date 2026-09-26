@@ -2,12 +2,13 @@
 import { useMemo, useState } from "react";
 import { ChoreCategoryPicker } from "../components/ChoreCategoryPicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { useCannvasData } from "../data/DataProvider";
+import { DialogBackdrop } from "../components/DialogBackdrop";
+import { useChores } from "../data/DataProvider";
 import type { ChoreCategory } from "../data/types";
 import { addDays, dateKey, fromDateKey, money, startOfWeek } from "../lib/dates";
 
 export function ChoresApp() {
-  const { chores, completions, addChore, updateChore, removeChore, toggleCompletion } = useCannvasData();
+  const { chores, completions, addChore, updateChore, removeChore, toggleCompletion } = useChores();
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [showAdd, setShowAdd] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
@@ -34,6 +35,13 @@ export function ChoresApp() {
   const standardDone = completions.filter((completion) => weekDates.has(completion.date) && standardChores.some((chore) => chore.id === completion.choreId)).length;
   const standardPossible = standardChores.length * 7;
   const isThisWeek = dateKey(weekStart) === dateKey(startOfWeek(new Date()));
+  const editingChore = chores.find((chore) => chore.id === choreToEdit);
+  // The backdrop may only close a form with nothing typed into it.
+  const addFormEmpty = !name.trim() && value === "0.50";
+  const editFormUnchanged = editingChore !== undefined
+    && name === editingChore.name
+    && category === editingChore.category
+    && value === (editingChore.valueCents / 100).toFixed(2);
   const submitChore = async (event: React.FormEvent) => {
     event.preventDefault();
     const valueCents = Math.round(Number(value) * 100);
@@ -158,8 +166,8 @@ export function ChoresApp() {
       </div>
 
       {showAdd && (
-        <div className="dialog-backdrop" role="presentation" onPointerDown={() => setShowAdd(false)}>
-          <form className="dialog-card add-chore-card chore-editor-card" onSubmit={(event) => void submitChore(event)} onPointerDown={(event) => event.stopPropagation()}>
+        <DialogBackdrop onDismiss={addFormEmpty ? () => setShowAdd(false) : undefined}>
+          <form className="dialog-card add-chore-card chore-editor-card" onSubmit={(event) => void submitChore(event)}>
             <div className="dialog-symbol add"><Plus /></div>
             <h2>添加新家务</h2>
             <ChoreCategoryPicker value={category} onChange={setCategory} />
@@ -169,12 +177,12 @@ export function ChoresApp() {
             </div>
             <div className="dialog-actions"><button type="button" className="button secondary" onClick={() => setShowAdd(false)}>取消</button><button className="button primary" type="submit" disabled={!name.trim()}>添加</button></div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 
       {choreToEdit && (
-        <div className="dialog-backdrop" role="presentation" onPointerDown={() => setChoreToEdit(null)}>
-          <form className="dialog-card chore-editor-card" onSubmit={(event) => void submitRename(event)} onPointerDown={(event) => event.stopPropagation()}>
+        <DialogBackdrop onDismiss={editFormUnchanged ? () => setChoreToEdit(null) : undefined}>
+          <form className="dialog-card chore-editor-card" onSubmit={(event) => void submitRename(event)}>
             <div className="dialog-symbol edit"><Pencil /></div>
             <h2>编辑家务</h2>
             <ChoreCategoryPicker value={category} onChange={setCategory} />
@@ -186,7 +194,7 @@ export function ChoresApp() {
               <button className="button primary" type="submit" disabled={!name.trim()}>保存</button>
             </div>
           </form>
-        </div>
+        </DialogBackdrop>
       )}
 
       {showInfo && (

@@ -69,6 +69,30 @@ pnpm convex:dev
 This creates the local deployment details used by the app. See
 [`.env.example`](.env.example) for the browser settings you can provide.
 
+### The touchscreen's device token
+
+The touchscreen has no signed-in user, so every Convex call it makes carries a
+shared device token. Whiteboard and chore backups, to-dos, the calendar and
+the news headlines all refuse calls without it.
+
+```sh
+pnpm exec convex env set CANNVAS_DEVICE_TOKEN "$(openssl rand -hex 32)"
+```
+
+Put the same value in `.env.local` as `VITE_CANNVAS_DEVICE_TOKEN` before
+building the touchscreen. Without it the touchscreen still works, but only on
+local data with no backup.
+
+The token ends up in the touchscreen's JavaScript, which is fine because that
+build is only served from the Raspberry Pi. The public website is a separate
+build (see below) that never contains it.
+
+Server functions are built with [fluent-convex](https://github.com/mikecann/fluent-convex)
+builders from [`convex/fluent.ts`](convex/fluent.ts): `deviceQuery`,
+`deviceMutation` and `deviceAction` for the touchscreen, `inventoryQuery` and
+`inventoryMutation` for signed-in inventory users, and `publicQuery` for the
+few deliberately public reads.
+
 ### Inventory
 
 The inventory app uploads photos to Convex file storage and keeps an append-only
@@ -96,28 +120,27 @@ items placed in Giveaway or To Giveaway and leaves out household locations,
 history, creator details, and AI research sources.
 
 The family touchscreen has a separate read-only Inventory view that does not
-ask for a login. Its access token stays on the mirror and is never included in
-the public browser bundle. When setting up a new mirror, configure it with:
+ask for a login. Its access token stays on the Pi and is never included in
+the public browser bundle. When setting up a new Pi, configure it with:
 
 ```sh
 ./deploy/configure-kiosk-inventory https://your-deployment.convex.site
 ```
 
-You can pass the mirror's Tailscale hostname as a second argument when it is not
-named `mirror`.
+You can pass the Pi's Tailscale hostname as a second argument when it is not
+named `cannvas`.
 
 ### Google Calendar
 
 Cannvas reads one private iCal feed. The feed address stays in Convex rather
-than being sent to the browser.
+than being sent to the browser, and the touchscreen reads it with its device
+token.
 
 ```sh
 pnpm exec convex env set GOOGLE_CALENDAR_ICAL_URL '<private iCal address>'
-pnpm exec convex env set CALENDAR_ACCESS_TOKEN '<long random token>'
 ```
 
-Add the same access token to the build environment as
-`VITE_CALENDAR_ACCESS_TOKEN`. Declined and cancelled events are left out.
+Declined and cancelled events are left out.
 
 <details>
 <summary><strong>Google Tasks setup</strong></summary>
@@ -139,7 +162,6 @@ pnpm exec convex env set GOOGLE_TASKS_CLIENT_SECRET '<OAuth client secret>'
 pnpm exec convex env set GOOGLE_TASKS_REDIRECT_URI 'https://<deployment>.convex.site/google-tasks/callback'
 pnpm exec convex env set GOOGLE_TASKS_SETUP_TOKEN '<long random token>'
 pnpm exec convex env set CANNVAS_QUICK_ADD_TOKEN '<different long random token>'
-pnpm exec convex env set CANNVAS_TODO_ACCESS_TOKEN '<third long random token>'
 ```
 
 Open the connection link once while signed in to the Google account you want to
@@ -149,9 +171,18 @@ use:
 https://<deployment>.convex.site/google-tasks/connect?setupToken=<setup token>
 ```
 
-Add `CANNVAS_TODO_ACCESS_TOKEN` to the touchscreen build as
-`VITE_CANNVAS_TODO_ACCESS_TOKEN`. Google OAuth credentials remain on the
-server.
+The touchscreen uses the shared to-do list whenever it has its device token.
+Google OAuth credentials remain on the server.
+
+Sync runs every two minutes. A to-do that fails to push backs off (2 minutes
+doubling up to 6 hours). If a poll hits a problem, such as Google reporting
+more than five deletions of linked tasks at once, the rest still syncs and the
+problem is stored as `lastPollError` on the `googleTasksConnections` row.
+After checking Google, apply a large batch of deletions with:
+
+```sh
+pnpm exec convex run googleTasks:poll '{"fullSync":true,"allowDeletions":<count>}'
+```
 
 The `/quick-add-todo` endpoint can also accept a Bearer token from an Apple
 Shortcut. If the shortcut leaves out the person, priority, or date, Cannvas
@@ -229,12 +260,128 @@ Chinese input on the kiosk is provided by ibus-libpinyin. See the
 **TX2 deployment** section in `AGENTS.md` for the full configuration and the
 known restart pitfall.
 
+### Deploying
+
+`deploy/deploy.sh` builds the app and ships it to the Pi (Tailscale host
+`cannvas`):
+
+```sh
+deploy/deploy.sh            # build, upload, switch, health check
+deploy/deploy.sh rollback   # switch back to the previous release
+```
+
+Each release lives in `/opt/cannvas/releases/<YYYYmmdd-HHMMSS>-<sha>`, owned by
+root, with the web build in `www/` and `cannvas-server` beside it. The server
+only serves `www/`, so the script and anything else in the release stay
+private. The deploy switches `/opt/cannvas/current` with an atomic rename,
+restarts `cannvas-web` and the kiosk, and checks that `/` and `/api/health`
+answer. `/api/health` only checks the server, so a Home Assistant outage can't
+block a deploy. If either check fails, it switches back on its own. It keeps the newest five
+releases plus the previous one.
+
+Set `CANNVAS_HOST`, `CANNVAS_BUILD`, `CANNVAS_DIST` or `CANNVAS_SKIP_BUILD=1`
+to change the host, build command, build output directory, or to reuse an
+existing build. The build reads the kiosk's `VITE_*` tokens from the untracked
+`.env.local`.
+
+The server has Python tests (3.11 or newer). `pnpm test` runs them after the
+Node tests, and so does CI. To run them on their own:
+
+```sh
+pnpm test:server
+```
+
+### Installing the system pieces
+
+The deploy script only ships the app. The units and helper scripts are
+installed once:
+
+```sh
+# Web server and the power-off helper it may start through polkit
+sudo install -m 0644 deploy/cannvas-web.service deploy/cannvas-poweroff.service \
+  deploy/cannvas-ha-shutdown.service /etc/systemd/system/
+sudo install -m 0644 deploy/50-cannvas-poweroff.rules /etc/polkit-1/rules.d/
+sudo install -m 0755 deploy/cannvas-ha-shutdown /usr/local/bin/
+
+# Kiosk watchdog (a user timer, like the kiosk itself)
+sudo install -m 0755 deploy/cannvas-kiosk-watchdog /usr/local/bin/
+install -m 0644 deploy/cannvas-kiosk-watchdog.service \
+  deploy/cannvas-kiosk-watchdog.timer ~/.config/systemd/user/
+
+# Smaller journal on the SD card
+sudo install -D -m 0644 deploy/journald-cannvas.conf \
+  /etc/systemd/journald.conf.d/cannvas.conf
+
+sudo systemctl daemon-reload
+sudo systemctl restart systemd-journald
+sudo systemctl enable --now cannvas-web.service cannvas-ha-shutdown.service
+systemctl --user daemon-reload
+systemctl --user enable --now cannvas-kiosk-watchdog.timer
+```
+
+`cannvas-web.service` runs as `pi` with no capabilities, no devices, a
+read-only system, and a 256M memory cap. It can write only
+`/var/lib/cannvas` (integration settings) and `/run/cannvas` (the kiosk
+heartbeat). The 30 second display recovery check and the kiosk watchdog use
+`LogLevelMax=notice`, so they only log when they act.
+
+### Nightly power off
+
+Home Assistant switches the smart plug feeding the TV and Pi off at 21:15 and
+on at 07:00. Cutting power to a running Pi risks the SD card, so the Pi now
+shuts itself down first:
+
+1. At 21:15 the Home Assistant automation turns on
+   `input_boolean.cannvas_shutdown`.
+2. `cannvas-ha-shutdown.service` on the Pi polls that helper every 10 seconds,
+   using the Home Assistant token the web server already stores. When it sees
+   the helper on, it starts `cannvas-poweroff.service`, the same
+   polkit-approved helper the on-screen power button uses, then turns the
+   helper back off as an acknowledgement. If the power-off can't start, it
+   leaves the helper on and tries again on the next poll.
+3. The automation waits up to 60 seconds for that acknowledgement, then 60
+   seconds more for the Pi to halt, then cuts the plug and clears the helper.
+
+If the Pi never answers, the plug still goes off after two minutes, as before.
+The Pi only makes outgoing requests, so nothing new listens on the network. It
+ignores a request more than ten minutes old (measured on Home Assistant's
+clock, because the Pi has no real-time clock), and the 07:00 automation clears
+the helper before switching the plug on, so a leftover request cannot switch the
+display straight back off in the morning. The plug's power sensor can't show
+when the Pi has halted because the TV draws most of the power, which is why the
+automation uses a fixed wait.
+
+### Evening dimming
+
+There's no light sensor, so the screen follows the sun. It starts dimming at
+sunset, reaches about 45% brightness at 21:00 and stays there until sunrise.
+Any touch brings full brightness back for three minutes. Sunrise and sunset
+come from Home Assistant's `sun.sun` through `/api/sun`, with a local
+calculation for Busselton when Home Assistant can't be reached.
+
+### Kiosk watchdog
+
+The page POSTs to `/api/heartbeat` every 30 seconds from the app shell, so
+the pings stop if React stops rendering. The server records the time in `/run/cannvas/heartbeat`, and the
+`cannvas-kiosk-watchdog` user timer restarts `cannvas-kiosk.service` if no ping
+has arrived for three minutes. It does nothing until the first ping after boot,
+skips a kiosk that started in the last three minutes or a web server that is
+down, and restarts only once per silence, so a page that never pings can't
+cause a restart loop.
+
 ## How the data is handled
 
 Whiteboards, chores, pet schedules, and device settings work locally on the
 touchscreen. When Convex is connected, Cannvas keeps a revisioned backup so the
 display can recover without making the internet connection responsible for
-every tap or brush stroke.
+every tap or brush stroke. Each whiteboard date is its own backup document, so
+the backup can't outgrow Convex's document size limit. If backing up fails, the
+screen shows a "Backup paused" badge and keeps retrying. Nothing is lost from
+the screen itself.
+
+Inventory photos are redrawn as JPEGs in the browser before upload, which
+removes EXIF data such as GPS location. Photos uploaded before that change
+still have theirs.
 
 Inventory, Google Tasks, and Calendar use the Convex backend. Home Assistant and
 UniFi stay behind the local Raspberry Pi server. Their private credentials are
@@ -245,11 +392,21 @@ not committed to this repository.
 ```sh
 pnpm dev                # Run the app locally
 pnpm typecheck          # Check the TypeScript code
-pnpm build              # Create a production build
-pnpm preview            # Preview the production build
+pnpm test               # Run the regression tests
+pnpm build              # Build the touchscreen into dist/ (never publish this)
+pnpm build:mirror       # Build the touchscreen against the production backend
+pnpm build:public       # Build the public website into dist-public/
+pnpm preview            # Preview the touchscreen build
 pnpm convex:dev         # Run or configure the Convex development backend
-pnpm deploy:cloudflare  # Publish the web entries to Cloudflare
+pnpm deploy:cloudflare  # Publish dist-public/ to Cloudflare
 ```
+
+There are two separate builds. The touchscreen build (`dist/`) carries the
+device token and is only ever copied to the Raspberry Pi. The public website
+(`dist-public/`) only has the app launcher, `/inventory/` and `/giveaway/`,
+and its build fails if any touchscreen code or token value would end up in it.
+GitHub Actions deploys Convex and the public website on every push to `main`.
+The touchscreen is deployed by hand.
 
 This is a real family project, so some names, labels, defaults, and integrations
 are specific to our household. Fork it, swap those pieces out, and make it fit

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   CheckSquare2,
@@ -13,6 +13,9 @@ import {
   PencilLine,
   Power,
   CloudSun,
+  CloudOff,
+  LoaderCircle,
+  Sun,
 } from "lucide-react";
 import { CalendarApp } from "./apps/CalendarApp";
 import { ChoresApp } from "./apps/ChoresApp";
@@ -21,13 +24,20 @@ import { DisplayApp } from "./apps/DisplayApp";
 import { FamilyLocationApp } from "./apps/FamilyLocationApp";
 import { KioskInventoryApp } from "./apps/KioskInventoryApp";
 import { SammyTabletTickerApp } from "./apps/SammyTabletTickerApp";
+import { SolarApp } from "./apps/SolarApp";
 import { TodosApp } from "./apps/TodosApp";
 import { WhiteboardApp } from "./apps/WhiteboardApp";
-import { WeatherApp } from "./apps/WeatherApp";
+import { AppErrorBoundary } from "./components/AppErrorBoundary";
 import { ConfirmDialog } from "./components/ConfirmDialog";
-import { useCannvasData } from "./data/DataProvider";
+import { useDeviceStatus } from "./data/DataProvider";
+import type { BackupStatus } from "./data/types";
 import { POWER_OFF_RECOVERY_MESSAGE, schedulePowerOffRecovery } from "./lib/actionTiming";
 import { dismissNativeKeyboard, installNativeKeyboard } from "./lib/nativeKeyboard";
+import { useHeartbeat } from "./lib/useHeartbeat";
+import { useNightDim } from "./lib/useNightDim";
+
+// Leaflet and the bigger dashboards load only when first opened.
+const WeatherApp = lazy(() => import("./apps/WeatherApp").then((module) => ({ default: module.WeatherApp })));
 
 type AppId =
   | "whiteboard"
@@ -37,6 +47,7 @@ type AppId =
   | "weather"
   | "compute"
   | "locations"
+  | "solar"
   | "sammy-tablets"
   | "inventory"
   | "display";
@@ -51,7 +62,9 @@ const primaryApps = [
   { id: "locations" as const, label: "位置", icon: MapPinned },
 ];
 
+// Things used less often. The home screen's solar readout still opens Solar.
 const moreApps = [
+  { id: "solar" as const, label: "太阳能", description: "当前与今日发电", icon: Sun },
   { id: "sammy-tablets" as const, label: "宠物喂药", description: "驱虫提醒", icon: Dog },
   { id: "inventory" as const, label: "物品清单", description: "查找家中物品", icon: PackageSearch },
 ];
@@ -59,7 +72,8 @@ const moreApps = [
 const DEFAULT_IDLE_TIMEOUT = 5 * 60 * 1000;
 
 export function App() {
-  const { isReady } = useCannvasData();
+  const { isReady, backupStatus } = useDeviceStatus();
+  useHeartbeat();
   const [activeApp, setActiveApp] = useState<AppId>("whiteboard");
   const [displaySession, setDisplaySession] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -173,18 +187,36 @@ export function App() {
       onPointerDown={wake}
     >
       <div className="app-stage" aria-live="polite">
-        {!isReady && <div className="loading-card">正在打开 Cannvas…</div>}
-        {isReady && activeApp === "whiteboard" && <WhiteboardApp />}
-        {isReady && activeApp === "chores" && <ChoresApp />}
-        {isReady && activeApp === "todos" && <TodosApp />}
-        {isReady && activeApp === "calendar" && <CalendarApp />}
-        {isReady && activeApp === "weather" && <WeatherApp />}
-        {isReady && activeApp === "compute" && <ComputeApp />}
-        {isReady && activeApp === "locations" && <FamilyLocationApp />}
-        {isReady && activeApp === "sammy-tablets" && <SammyTabletTickerApp />}
-        {isReady && activeApp === "inventory" && <KioskInventoryApp />}
-        {isReady && activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} onOpenLocations={() => openApp("locations")} />}
+        {/* Only a brand new screen waits here, while its backup is restored. */}
+        {!isReady && <RestoringCard backupStatus={backupStatus} />}
+        {isReady && (
+          <AppErrorBoundary key={activeApp}>
+            <Suspense fallback={<div className="loading-card"><LoaderCircle className="spin" /></div>}>
+              {activeApp === "whiteboard" && <WhiteboardApp />}
+              {activeApp === "chores" && <ChoresApp />}
+              {activeApp === "todos" && <TodosApp />}
+              {activeApp === "calendar" && <CalendarApp />}
+              {activeApp === "weather" && <WeatherApp />}
+              {activeApp === "solar" && <SolarApp />}
+              {activeApp === "compute" && <ComputeApp />}
+              {activeApp === "locations" && <FamilyLocationApp />}
+              {activeApp === "sammy-tablets" && <SammyTabletTickerApp />}
+              {activeApp === "inventory" && <KioskInventoryApp />}
+              {activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} onOpenLocations={() => openApp("locations")} onOpenSolar={() => openApp("solar")} />}
+            </Suspense>
+          </AppErrorBoundary>
+        )}
       </div>
+
+      {backupStatus.state === "error" && isReady && activeApp !== "display" && (
+        <div className="backup-error-badge" role="status" title={backupStatus.message}>
+          <span className="backup-error-icon"><CloudOff /></span>
+          <span>
+            <strong>备份已暂停</strong>
+            <small>数据仍完整保存在本机</small>
+          </span>
+        </div>
+      )}
 
       {keyboardVisible && activeApp !== "display" && (
         <button
@@ -262,6 +294,26 @@ export function App() {
         <p>这将安全地关闭 Cannvas 电脑。如需再次启动，请重新打开电源。</p>
         {powerOffError && <p className="dialog-error">{powerOffError}</p>}
       </ConfirmDialog>
+
+      <NightDimOverlay />
     </main>
   );
+}
+
+function RestoringCard({ backupStatus }: { backupStatus: BackupStatus }) {
+  return (
+    <div className="loading-card restoring-card" role="status">
+      <LoaderCircle className="spin" />
+      <strong>正在打开 Cannvas…</strong>
+      <span>{backupStatus.state === "error"
+        ? "这块屏幕是新设备，正在先恢复备份。暂时连不上备份服务，会持续重试。"
+        : "这块屏幕是新设备，正在先恢复备份。"}</span>
+    </div>
+  );
+}
+
+// Its own component, so the minute tick and touch wake never re-render the app.
+function NightDimOverlay() {
+  const level = useNightDim();
+  return <div className="night-dim" aria-hidden="true" style={{ opacity: level }} />;
 }
