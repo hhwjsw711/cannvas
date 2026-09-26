@@ -71,8 +71,8 @@ const EVENT_LABELS: Record<string, string> = {
 };
 
 function hasTag(tags: string[], tag: string) {
-  const normalizedTag = tag.toLocaleLowerCase("en-AU");
-  return tags.some((candidate) => candidate.toLocaleLowerCase("en-AU") === normalizedTag);
+  const normalizedTag = tag.toLowerCase();
+  return tags.some((candidate) => candidate.toLowerCase() === normalizedTag);
 }
 
 function getErrorMessage(error: unknown) {
@@ -377,7 +377,7 @@ function DetailSheet({ itemId, onClose }: { itemId: Id<"inventoryItems">; onClos
         description: String(data.get("description") ?? ""),
         category: String(data.get("category") ?? ""),
         tags: [
-          ...String(data.get("tags") ?? "").split(",").filter((tag) => tag.trim().toLocaleLowerCase("en-AU") !== BOX_ONLY_TAG),
+          ...String(data.get("tags") ?? "").split(",").filter((tag) => tag.trim().toLowerCase() !== BOX_ONLY_TAG),
           ...(data.get("boxOnly") === "on" ? [BOX_ONLY_TAG] : []),
         ],
         condition: String(data.get("condition") ?? ""),
@@ -494,7 +494,7 @@ function InventoryBrowser() {
   const [status, setStatus] = useState<InventoryStatus>("active");
   const [capturing, setCapturing] = useState(false);
   const [selected, setSelected] = useState<Id<"inventoryItems"> | null>(null);
-  const reviewFilterActive = search.trim().toLocaleLowerCase("en-AU") === "needs review";
+  const reviewFilterActive = search.trim().toLowerCase() === "needs review";
   const sentinel = useRef<HTMLDivElement>(null);
   const { results, status: pageStatus, loadMore } = usePaginatedQuery(
     api.inventory.list,

@@ -116,31 +116,34 @@ export function controlAction(entity: HomeAssistantEntity): HomeAssistantAction 
 export function stateLabel(entity: HomeAssistantEntity) {
   const state = stateOf(entity);
   const unit = entity.attributes.unit_of_measurement ? ` ${entity.attributes.unit_of_measurement}` : "";
-  if (isUnavailable(entity)) return "Unavailable";
-  if (entity.domain === "person") return state === "home" ? "Home" : state === "not_home" ? "Away" : entity.state;
+  if (isUnavailable(entity)) return "不可用";
+  if (entity.domain === "person") return state === "home" ? "在家" : state === "not_home" ? "外出" : entity.state;
   // Jammed, locking and unlocking must not read as a plain "Unlocked".
-  if (entity.domain === "lock") return state === "locked" ? "Locked" : state === "unlocked" ? "Unlocked" : entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
-  if (entity.domain === "cover") return entity.state.charAt(0).toUpperCase() + entity.state.slice(1);
-  if (SWITCH_DOMAINS.includes(entity.domain) || entity.domain === "light" || entity.domain === "media_player") {
-    return isOn(entity) ? "On" : "Off";
+  if (entity.domain === "lock") return state === "locked" ? "已锁定" : state === "unlocked" ? "未锁定" : entity.state;
+  if (entity.domain === "cover") {
+    const coverLabels: Record<string, string> = { open: "打开", opening: "正在打开", closed: "关闭", closing: "正在关闭" };
+    return coverLabels[state] ?? entity.state;
   }
-  if (isRoutine(entity)) return "Run";
+  if (SWITCH_DOMAINS.includes(entity.domain) || entity.domain === "light" || entity.domain === "media_player") {
+    return isOn(entity) ? "开" : "关";
+  }
+  if (isRoutine(entity)) return "运行";
   if (entity.domain === "climate") {
     const temperature = entity.attributes.current_temperature ?? entity.attributes.temperature;
     return temperature === undefined ? entity.state : `${temperature}° · ${entity.state}`;
   }
   if (entity.domain === "binary_sensor") {
     const active = state === "on";
-    if (isOpeningSensor(entity)) return active ? "Open" : "Closed";
-    if (PRESENCE_CLASSES.includes(entity.attributes.device_class ?? "")) return active ? "Detected" : "Clear";
-    return active ? "On" : "Off";
+    if (isOpeningSensor(entity)) return active ? "打开" : "关闭";
+    if (PRESENCE_CLASSES.includes(entity.attributes.device_class ?? "")) return active ? "已检测" : "无";
+    return active ? "开" : "关";
   }
   const numericState = Number(entity.state);
   if (Number.isFinite(numericState)) {
     const maximumFractionDigits = ["battery", "humidity"].includes(entity.attributes.device_class ?? "")
       ? 0
       : entity.attributes.device_class === "energy" ? 2 : 1;
-    return `${new Intl.NumberFormat("en-AU", { maximumFractionDigits }).format(numericState)}${unit}`;
+    return `${new Intl.NumberFormat("zh-CN", { maximumFractionDigits }).format(numericState)}${unit}`;
   }
   return `${entity.state}${unit}`;
 }

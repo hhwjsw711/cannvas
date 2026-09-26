@@ -93,7 +93,7 @@ exec /usr/bin/chromium \
   --force-device-scale-factor=1 \
   --ozone-platform=wayland \
   --touch-events=enabled \
-  --lang=en-AU \
+  --lang=zh-CN \
   --no-first-run \
   --noerrdialogs \
   --disable-infobars \

@@ -41,7 +41,7 @@ const publicGiveawayItem = v.object({
 const PUBLIC_GIVEAWAY_LOCATIONS = ["giveaway", "to giveaway"] as const;
 
 function normalizeLocation(name: string) {
-  return name.trim().replace(/\s+/g, " ").toLocaleLowerCase("en-AU");
+  return name.trim().replace(/\s+/g, " ").toLowerCase();
 }
 
 function cleanLocationName(name: string) {
@@ -171,7 +171,7 @@ export const publicGiveaway = publicQuery
         category: item.category,
         condition: item.condition,
         quantity: item.quantity,
-        boxOnly: item.tags.some((tag) => tag.trim().toLocaleLowerCase("en-AU") === "box only"),
+        boxOnly: item.tags.some((tag) => tag.trim().toLowerCase() === "box only"),
         enrichmentStatus: item.enrichmentStatus,
         updatedAt: item.updatedAt,
         photoUrls: photoUrls.flatMap((url) => url ? [url] : []),

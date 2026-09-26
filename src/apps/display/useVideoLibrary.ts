@@ -38,10 +38,25 @@ function writeCache(videos: string[]) {
   }
 }
 
+// Chromium 112 on the Jetson TX2 kiosk has no AbortSignal.any. Fall back to a
+// controller that fires when either the caller's signal or the timeout does.
+function anySignal(signal: AbortSignal, timeoutMs: number): AbortSignal {
+  if (typeof (AbortSignal as { any?: unknown }).any === "function") {
+    return AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)]);
+  }
+  const controller = new AbortController();
+  const abort = (reason: unknown) => { if (!controller.signal.aborted) controller.abort(reason); };
+  if (signal.aborted) abort(signal.reason);
+  else signal.addEventListener("abort", () => abort(signal.reason), { once: true });
+  const timer = window.setTimeout(() => abort(new DOMException("The operation timed out", "TimeoutError")), timeoutMs);
+  controller.signal.addEventListener("abort", () => window.clearTimeout(timer), { once: true });
+  return controller.signal;
+}
+
 async function crawlVideos(signal: AbortSignal, root = VIDEO_ROOT, depth = 0, visited = new Set<string>()): Promise<string[]> {
   if (depth > 10 || visited.has(root)) return [];
   visited.add(root);
-  const response = await fetch(root, { signal: AbortSignal.any([signal, AbortSignal.timeout(LISTING_TIMEOUT_MS)]) });
+  const response = await fetch(root, { signal: anySignal(signal, LISTING_TIMEOUT_MS) });
   if (!response.ok) throw new Error(`Video server returned ${response.status}`);
   const { videos, folders } = parseVideoListing(await response.text(), root, window.location.origin);
   const nested = await Promise.all(folders.map((folder) => crawlVideos(signal, folder, depth + 1, visited)

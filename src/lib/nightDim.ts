@@ -10,8 +10,8 @@ export const DEEPEST_DIM_HOUR = 21;
 /** How long a touch brings the full brightness back. */
 export const TOUCH_WAKE_MS = 3 * 60_000;
 
-// Busselton, Western Australia.
-export const HOME_LOCATION = { latitude: -33.6516, longitude: 115.347 };
+// 丽水，浙江。
+export const HOME_LOCATION = { latitude: 28.4679, longitude: 119.9229 };
 
 export type SunTimes = { sunrise: Date; sunset: Date };
 
@@ -68,7 +68,7 @@ export function nightDimLevel(now: Date, { sunrise, sunset }: SunTimes): number 
   if (now < sunset) return 0;
   const deepest = new Date(now);
   deepest.setHours(DEEPEST_DIM_HOUR, 0, 0, 0);
-  // Sunset is never this late in Busselton, but keep the ramp sensible.
+  // 丽水的日落不会这么晚，但保持渐变合理。
   if (deepest.getTime() <= sunset.getTime()) return DEEPEST_DIM;
   if (now >= deepest) return DEEPEST_DIM;
   const progress = (now.getTime() - sunset.getTime()) / (deepest.getTime() - sunset.getTime());

@@ -83,11 +83,11 @@ export const applyEnrichment = internalMutation({
     if (!item || (item.enrichmentGeneration ?? 0) !== args.generation) return null;
     const reviewReason = args.enrichment.reviewReason.trim();
     const tags = args.enrichment.tags.map((tag) => tag.trim()).filter(Boolean).slice(0, 28);
-    if (item.tags.some((tag) => tag.toLocaleLowerCase("en-AU") === "box only")) tags.push("box only");
+    if (item.tags.some((tag) => tag.toLowerCase() === "box only")) tags.push("box only");
     if (args.enrichment.needsReview) tags.push("needs review");
     const attributes = args.enrichment.attributes
       .map(({ label, value }) => ({ label: label.trim(), value: value.trim() }))
-      .filter(({ label, value }) => label && value && label.toLocaleLowerCase("en-AU") !== "review note")
+      .filter(({ label, value }) => label && value && label.toLowerCase() !== "review note")
       .slice(0, args.enrichment.needsReview && reviewReason ? 39 : 40);
     if (args.enrichment.needsReview && reviewReason) {
       attributes.push({ label: "Review note", value: reviewReason });

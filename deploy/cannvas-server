@@ -265,7 +265,7 @@ def public_entity(entity: dict[str, Any]) -> dict[str, Any]:
 
 # Solar comes from the Solis inverter through Home Assistant's ha-solarman
 # integration. The grid sensor follows the Solis meter: positive means export.
-SOLAR_ZONE = ZoneInfo("Australia/Perth")
+SOLAR_ZONE = ZoneInfo("Asia/Shanghai")
 SOLAR_STEP = timedelta(minutes=5)
 SOLAR_HISTORY_TTL = 60
 SOLAR_ENTITIES = {
@@ -454,7 +454,7 @@ def solar_status(config: dict[str, str]) -> dict[str, Any]:
     forecast_states = {key: by_id.get(entity) or {} for key, entity in SOLAR_FORECAST_ENTITIES.items()}
     peak_forecast = (by_id.get(SOLAR_FORECAST_PEAK) or {}).get("state")
     # The inverter keeps its clock (and its "today" counter) in UTC, which
-    # resets at 8am in Perth. Integrate the power history instead.
+    # resets at 8am in Shanghai. Integrate the power history instead.
     solar_points = points.get("solar", [])
     generated = round(integrate_kwh(solar_points, midnight.timestamp(), now.timestamp()), 2) if any(row[1] is not None for row in solar_points) else None
     grid_points = points.get("grid", [])

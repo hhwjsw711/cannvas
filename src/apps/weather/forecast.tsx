@@ -9,15 +9,15 @@ import {
 } from "lucide-react";
 import type { ComponentType } from "react";
 
-export const BUSSELTON = { latitude: -33.6516, longitude: 115.3470 };
+export const LISHUI = { latitude: 28.4679, longitude: 119.9229 };
 export const WEATHER_REFRESH_MS = 15 * 60 * 1000;
 const WEATHER_CACHE_KEY = "cannvas-weather-v1";
 
 export const FORECAST_URL = new URL("https://api.open-meteo.com/v1/forecast");
 FORECAST_URL.search = new URLSearchParams({
-  latitude: String(BUSSELTON.latitude),
-  longitude: String(BUSSELTON.longitude),
-  timezone: "Australia/Perth",
+  latitude: String(LISHUI.latitude),
+  longitude: String(LISHUI.longitude),
+  timezone: "Asia/Shanghai",
   forecast_days: "10",
   current: [
     "temperature_2m",
@@ -105,16 +105,16 @@ type Condition = {
 };
 
 export function conditionFor(code: number): Condition {
-  if (code === 0) return { label: "Clear", icon: Sun };
-  if (code <= 2) return { label: "Partly cloudy", icon: CloudSun };
-  if (code === 3) return { label: "Cloudy", icon: Cloud };
-  if (code === 45 || code === 48) return { label: "Foggy", icon: CloudFog };
-  if (code >= 51 && code <= 67) return { label: code >= 61 ? "Rain" : "Drizzle", icon: CloudRain };
-  if (code >= 71 && code <= 77) return { label: "Snow", icon: Snowflake };
-  if (code >= 80 && code <= 82) return { label: "Showers", icon: CloudRain };
-  if (code >= 85 && code <= 86) return { label: "Snow showers", icon: Snowflake };
-  if (code >= 95) return { label: "Thunderstorms", icon: CloudLightning };
-  return { label: "Mixed conditions", icon: CloudSun };
+  if (code === 0) return { label: "晴", icon: Sun };
+  if (code <= 2) return { label: "局部多云", icon: CloudSun };
+  if (code === 3) return { label: "阴", icon: Cloud };
+  if (code === 45 || code === 48) return { label: "雾", icon: CloudFog };
+  if (code >= 51 && code <= 67) return { label: code >= 61 ? "雨" : "毛毛雨", icon: CloudRain };
+  if (code >= 71 && code <= 77) return { label: "雪", icon: Snowflake };
+  if (code >= 80 && code <= 82) return { label: "阵雨", icon: CloudRain };
+  if (code >= 85 && code <= 86) return { label: "阵雪", icon: Snowflake };
+  if (code >= 95) return { label: "雷暴", icon: CloudLightning };
+  return { label: "混合天气", icon: CloudSun };
 }
 
 export function WeatherIcon({ code, className }: { code: number; className?: string }) {
@@ -144,24 +144,24 @@ export function writeWeatherCache(forecast: WeatherForecast) {
 }
 
 export function hourLabel(value: string, index: number) {
-  if (index === 0) return "Now";
-  return new Date(value).toLocaleTimeString("en-AU", { hour: "numeric" });
+  if (index === 0) return "现在";
+  return new Date(value).toLocaleTimeString("zh-CN", { hour: "numeric" });
 }
 
 export function dayLabel(value: string, index: number) {
-  if (index === 0) return "Today";
-  return new Date(`${value}T12:00:00`).toLocaleDateString("en-AU", { weekday: "short" });
+  if (index === 0) return "今天";
+  return new Date(`${value}T12:00:00`).toLocaleDateString("zh-CN", { weekday: "short" });
 }
 
 export function windDirection(degrees: number) {
-  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const directions = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"];
   return directions[Math.round(degrees / 45) % directions.length];
 }
 
 export function uvLabel(value: number) {
-  if (value < 3) return "Low";
-  if (value < 6) return "Moderate";
-  if (value < 8) return "High";
-  if (value < 11) return "Very high";
-  return "Extreme";
+  if (value < 3) return "低";
+  if (value < 6) return "中等";
+  if (value < 8) return "高";
+  if (value < 11) return "很高";
+  return "极高";
 }

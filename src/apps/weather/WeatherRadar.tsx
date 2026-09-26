@@ -3,7 +3,7 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { usePolling } from "../../lib/usePolling";
-import { BUSSELTON, WEATHER_REFRESH_MS } from "./forecast";
+import { LISHUI, WEATHER_REFRESH_MS } from "./forecast";
 
 type RadarFrame = { time: number; path: string; forecast?: boolean };
 type RadarResponse = {
@@ -13,7 +13,7 @@ type RadarResponse = {
 
 function radarTime(frame: RadarFrame | undefined) {
   if (!frame) return "";
-  return new Date(frame.time * 1000).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit" });
+  return new Date(frame.time * 1000).toLocaleTimeString("zh-CN", { hour: "numeric", minute: "2-digit" });
 }
 
 function RadarScrubber({
@@ -52,7 +52,7 @@ function RadarScrubber({
         className="weather-radar-scrubber"
         role="slider"
         tabIndex={0}
-        aria-label="Radar time"
+        aria-label="雷达时间"
         aria-valuemin={0}
         aria-valuemax={Math.max(0, frames.length - 1)}
         aria-valuenow={frameIndex}
@@ -124,20 +124,20 @@ export function WeatherRadar() {
       attributionControl: true,
       minZoom: 6,
       maxZoom: 12,
-    }).setView([BUSSELTON.latitude, BUSSELTON.longitude], 8);
+    }).setView([LISHUI.latitude, LISHUI.longitude], 8);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors",
       className: "weather-base-map",
       maxZoom: 19,
     }).addTo(map);
     L.control.zoom({ position: "topright" }).addTo(map);
-    L.circleMarker([BUSSELTON.latitude, BUSSELTON.longitude], {
+    L.circleMarker([LISHUI.latitude, LISHUI.longitude], {
       radius: 8,
       color: "#ffffff",
       weight: 3,
       fillColor: "#4a9eff",
       fillOpacity: 1,
-    }).bindTooltip("Busselton", { permanent: true, direction: "right", offset: [8, 0] }).addTo(map);
+    }).bindTooltip("丽水", { permanent: true, direction: "right", offset: [8, 0] }).addTo(map);
     mapRef.current = map;
     const sizeTimer = window.setTimeout(() => map.invalidateSize(), 0);
     return () => {
@@ -220,26 +220,26 @@ export function WeatherRadar() {
     <section className="weather-card weather-radar-card">
       <div className="weather-card-heading">
         <div>
-          <span>Precipitation radar</span>
-          <strong>{frame ? radarTime(frame) : "Loading radar"}</strong>
+          <span>降雨雷达</span>
+          <strong>{frame ? radarTime(frame) : "正在加载雷达"}</strong>
         </div>
-        <small>{hasForecastFrames ? "Observed and forecast" : "Observed, past 2 hours"}</small>
+        <small>{hasForecastFrames ? "实测与预报" : "实测，过去 2 小时"}</small>
       </div>
-      <div className="weather-radar-map" ref={containerRef} aria-label="Rain radar map centred on Busselton">
-        {radarError && <div className="weather-radar-error">Radar is temporarily unavailable</div>}
-        <div className="weather-radar-key"><i />Light <i />Heavy</div>
+      <div className="weather-radar-map" ref={containerRef} aria-label="以丽水为中心的降雨雷达图">
+        {radarError && <div className="weather-radar-error">雷达暂时不可用</div>}
+        <div className="weather-radar-key"><i />弱 <i />强</div>
       </div>
       <div className="weather-radar-controls">
-        <button onClick={() => setFrameIndex((index) => Math.max(0, index - 1))} disabled={frameIndex === 0} aria-label="Previous radar frame"><ChevronLeft /></button>
-        <button className="weather-radar-play" onClick={() => setPlaying((value) => !value)} disabled={frames.length < 2} aria-label={playing ? "Pause radar" : "Play radar"}>{playing ? <Pause /> : <Play />}</button>
+        <button onClick={() => setFrameIndex((index) => Math.max(0, index - 1))} disabled={frameIndex === 0} aria-label="上一帧雷达"><ChevronLeft /></button>
+        <button className="weather-radar-play" onClick={() => setPlaying((value) => !value)} disabled={frames.length < 2} aria-label={playing ? "暂停雷达" : "播放雷达"}>{playing ? <Pause /> : <Play />}</button>
         <RadarScrubber
           frames={frames}
           frameIndex={frameIndex}
           onChange={(index) => { setPlaying(false); setFrameIndex(index); }}
         />
-        <button onClick={() => setFrameIndex((index) => Math.min(frames.length - 1, index + 1))} disabled={frameIndex >= frames.length - 1} aria-label="Next radar frame"><ChevronRight /></button>
+        <button onClick={() => setFrameIndex((index) => Math.min(frames.length - 1, index + 1))} disabled={frameIndex >= frames.length - 1} aria-label="下一帧雷达"><ChevronRight /></button>
       </div>
-      {!hasForecastFrames && <p className="weather-radar-note">The radar shows measured rain. The 12-hour timeline shows what is expected next.</p>}
+      {!hasForecastFrames && <p className="weather-radar-note">雷达显示实测降雨。时间轴展示未来 12 小时的预报。</p>}
     </section>
   );
 }

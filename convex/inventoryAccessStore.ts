@@ -30,7 +30,7 @@ export const grantByEmail = internalMutation({
   args: { email: v.string() },
   returns: v.object({ role: v.union(v.literal("owner"), v.literal("member")) }),
   handler: async (ctx, args) => {
-    const email = args.email.trim().toLocaleLowerCase("en-AU");
+    const email = args.email.trim().toLowerCase();
     const user = await ctx.db
       .query("users")
       .withIndex("email", (q) => q.eq("email", email))
