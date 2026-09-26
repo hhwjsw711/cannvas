@@ -36,7 +36,7 @@ test("lists videos but not photos or sidecars", async (context) => {
   assert.doesNotMatch(body, /clip\.xmp/);
 });
 
-test("serves approved source symlinks and rejects links outside the archive", async (context) => {
+test("serves approved source symlinks and rejects links outside the archive", { skip: process.platform === "win32" ? "Windows cannot create symlinks without admin rights" : false }, async (context) => {
   const temporary = await mkdtemp(join(tmpdir(), "cannvas-media-"));
   const cache = join(temporary, "cache");
   const source = join(temporary, "source");

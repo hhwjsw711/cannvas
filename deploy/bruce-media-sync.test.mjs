@@ -65,7 +65,7 @@ test("recognises iPhone and Mac screen recordings by name", () => {
   assert.equal(isScreenRecording("/archive/ScreenRecording_folder/IMG_0001.MOV"), false);
 });
 
-test("writes conversion partials as hidden files", () => {
+test("writes conversion partials as hidden files", { skip: process.platform === "win32" ? "POSIX path separators differ on Windows" : false }, () => {
   const partial = partialPath("/cache/2024/IMG_1.MOV.m4v", 123);
   assert.equal(partial, "/cache/2024/.IMG_1.MOV.m4v.partial-123.m4v");
   assert.equal(isGeneratedPartialName(basename(partial)), true);
@@ -78,7 +78,7 @@ test("falls back when the scan concurrency setting is not a positive number", ()
   assert.equal(positiveInteger("3.7", 8), 3);
 });
 
-test("removes cached videos whose source is gone and keeps everything else", async () => {
+test("removes cached videos whose source is gone and keeps everything else", { skip: process.platform === "win32" ? "Windows cannot create symlinks without admin rights" : false }, async () => {
   const root = await mkdtemp(join(tmpdir(), "cannvas-orphans-"));
   try {
     await mkdir(join(root, "2024"));
