@@ -1,7 +1,7 @@
 // Cross-platform Python launcher: picks `python3` on Linux/macOS and
 // `python` on Windows (where `python3` is often a Windows Store stub).
 // Usage: node scripts/run-python.mjs <args...>
-import { execFileSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
 const args = process.argv.slice(2);
 if (args.length === 0) {
@@ -12,16 +12,13 @@ if (args.length === 0) {
 const candidates = process.platform === "win32" ? ["python", "python3"] : ["python3", "python"];
 
 for (const cmd of candidates) {
-  try {
-    execFileSync(cmd, args, { stdio: "inherit" });
-    process.exit(0);
-  } catch (error) {
-    if (error.status !== undefined && error.status !== 127 && error.status !== 1) {
-      // Python ran but the script/test itself failed — preserve that exit code.
-      process.exit(error.status);
-    }
-    // Command not found or threw — try the next candidate.
+  const result = spawnSync(cmd, args, { stdio: "inherit" });
+  if (result.error && result.error.code === "ENOENT") {
+    // Command not found — try the next candidate.
+    continue;
   }
+  // Command ran (or failed to spawn for another reason) — propagate its exit code.
+  process.exit(result.status ?? 1);
 }
 
 console.error(`Python not found. Tried: ${candidates.join(", ")}`);
