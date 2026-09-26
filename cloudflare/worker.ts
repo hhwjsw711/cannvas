@@ -6,10 +6,11 @@ export default {
       return new Response("Method not allowed", { status: 405, headers: { Allow: "GET, HEAD" } });
     }
 
-    // The full dashboard is protected by Cloudflare Zero Trust Access.
+    // The public site's front door is the app launcher. The kiosk home screen
+    // is never published here: its build carries the device token and only
+    // ever runs on the home screen itself.
     if (url.pathname === "/") {
-      url.pathname = "/index.html";
-      return env.ASSETS.fetch(new Request(url, request));
+      return Response.redirect(new URL("/apps", request.url), 302);
     }
 
     if (url.pathname === "/apps" || url.pathname === "/apps/") {
