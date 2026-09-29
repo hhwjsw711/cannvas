@@ -1,6 +1,7 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarDays,
+  Cctv,
   CheckSquare2,
   Dog,
   Ellipsis,
@@ -20,6 +21,7 @@ import { CalendarApp } from "./apps/CalendarApp";
 import { ChoresApp } from "./apps/ChoresApp";
 import { DisplayApp } from "./apps/DisplayApp";
 import { KioskInventoryApp } from "./apps/KioskInventoryApp";
+import { SammyCamApp } from "./apps/SammyCamApp";
 import { SammyTabletTickerApp } from "./apps/SammyTabletTickerApp";
 import { SolarApp } from "./apps/SolarApp";
 import { TodosApp } from "./apps/TodosApp";
@@ -46,6 +48,7 @@ type AppId =
   | "solar"
   | "home-automation"
   | "sammy-tablets"
+  | "sammy-cam"
   | "inventory"
   | "display";
 
@@ -62,10 +65,14 @@ const primaryApps = [
 const moreApps = [
   { id: "solar" as const, label: "Solar", description: "Power right now and today", icon: Sun },
   { id: "sammy-tablets" as const, label: "Sammy", description: "Tablet schedule", icon: Dog },
+  { id: "sammy-cam" as const, label: "Sammy Cam", description: "Live view and last night", icon: Cctv },
   { id: "inventory" as const, label: "Inventory", description: "Find household items", icon: PackageSearch },
 ];
 
 const DEFAULT_IDLE_TIMEOUT = 5 * 60 * 1000;
+// Touches inside Sammy Cam's page never reach Cannvas, so the usual timeout
+// would send someone home halfway through scrubbing back through the night.
+const SAMMY_CAM_IDLE_TIMEOUT = 30 * 60 * 1000;
 
 export function App() {
   const { isReady, backupStatus } = useDeviceStatus();
@@ -79,6 +86,8 @@ export function App() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const moreWrap = useRef<HTMLDivElement>(null);
   const lastInteractiveApp = useRef<AppId>("whiteboard");
+  // What the idle timer is timing. State lags a render behind openApp.
+  const shownApp = useRef<AppId>("whiteboard");
   const idleTimer = useRef<number | undefined>(undefined);
   const idleTimeout = Number(import.meta.env.VITE_IDLE_TIMEOUT_MS) || DEFAULT_IDLE_TIMEOUT;
 
@@ -89,6 +98,7 @@ export function App() {
     // This also fires when the display is already active. Give DisplayApp an
     // explicit reset signal so an idle timeout always mutes the video again.
     setDisplaySession((session) => session + 1);
+    shownApp.current = "display";
     setActiveApp("display");
   }, []);
 
@@ -96,7 +106,7 @@ export function App() {
     window.clearTimeout(idleTimer.current);
     idleTimer.current = window.setTimeout(() => {
       openDisplay();
-    }, idleTimeout);
+    }, shownApp.current === "sammy-cam" ? Math.max(idleTimeout, SAMMY_CAM_IDLE_TIMEOUT) : idleTimeout);
   }, [idleTimeout, openDisplay]);
 
   useEffect(() => {
@@ -136,6 +146,7 @@ export function App() {
       openDisplay();
     } else {
       lastInteractiveApp.current = app;
+      shownApp.current = app;
       setActiveApp(app);
     }
     resetIdleTimer();
@@ -196,6 +207,7 @@ export function App() {
               {activeApp === "solar" && <SolarApp />}
               {activeApp === "home-automation" && <HomeAutomationApp />}
               {activeApp === "sammy-tablets" && <SammyTabletTickerApp />}
+              {activeApp === "sammy-cam" && <SammyCamApp />}
               {activeApp === "inventory" && <KioskInventoryApp />}
               {activeApp === "display" && <DisplayApp displaySession={displaySession} onActivity={resetIdleTimer} onOpenCalendar={() => openApp("calendar")} onOpenWeather={() => openApp("weather")} onOpenSolar={() => openApp("solar")} />}
             </Suspense>
