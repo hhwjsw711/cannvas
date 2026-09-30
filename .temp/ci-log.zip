@@ -1,0 +1,8 @@
+﻿gh : Get "https://results-receiver.actions.githubusercontent.com/rest/runs/498ccbfe-1bf4-498d-b381-4c857db7c421/logs?fi
+lename=logs_98151449019.zip&signature=1790428587.4e6fe6b1c414190417884daa18e68aa88e779364c9134d49ec08f8fde9dbe409": EOF
+At line:16 char:1
++ gh api repos/hhwjsw711/cannvas/actions/runs/36244510283/logs 2>&1 | O ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Get "https://re...de9dbe409": EOF:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
